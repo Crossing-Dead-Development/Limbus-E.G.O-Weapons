@@ -1,0 +1,10 @@
+name: LimbusEGOWeapons
+version: 0.1
+main: me.yisang.limbus.LimbusEGOWeapons
+description: Face the sin, Save the E.G.O.
+api-version: "1.21.4"
+depend: [ProtocolLib]
+commands:
+  getego:
+    description: 取得 E.G.O 裝備
+    permission: limbus.admin
