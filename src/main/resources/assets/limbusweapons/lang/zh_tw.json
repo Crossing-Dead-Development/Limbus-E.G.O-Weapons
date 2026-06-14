@@ -1,0 +1,16 @@
+{
+  "item.limbusweapons.solemn_lament_black": "莊嚴哀悼",
+  "item.limbusweapons.solemn_lament_white": "莊嚴哀悼",
+  "item.limbusweapons.butterfly_quartz": "生蝶、亡蝶",
+  "item.limbusweapons.solemn_shield": "聖宣",
+  "item.limbusweapons.mimicry": "擬態",
+  "item.limbusweapons.dacapo": "DaCapo",
+  "item.limbusweapons.ring_brush": "環指筆刷",
+
+  "limbusweapons.subtitle.solemn_load":  "裝填",
+  "limbusweapons.subtitle.solemn_shoot": "射擊",
+  "limbusweapons.subtitle.solemn_hit":   "命中",
+
+  "commands.getego.given":      "已給予 %s",
+  "commands.getego.unknown":    "未知武器：%s"
+}

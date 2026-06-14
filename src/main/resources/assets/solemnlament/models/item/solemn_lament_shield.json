@@ -1,0 +1,7 @@
+{
+	"credit": "Made with Blockbench",
+	"parent": "solemnlament:item/solemn_lament_shield_base",
+	"textures": {
+		"layer0": "item/solemn_lament_shield_shield"
+	}
+}

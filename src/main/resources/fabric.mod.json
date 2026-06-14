@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "limbusweapons",
+  "version": "${version}",
+  "name": "Limbus E.G.O Weapons",
+  "description": "Limbus Company E.G.O weapon items — Fabric port.",
+  "authors": ["yisang"],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["me.yisang.limbusweapons.LimbusWeaponsMod"]
+  },
+  "mixins": [],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "~1.21.4"
+  }
+}
