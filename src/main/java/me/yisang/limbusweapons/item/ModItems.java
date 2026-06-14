@@ -11,44 +11,72 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroups;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Rarity;
 
 public class ModItems {
 
-    // ── 莊嚴哀悼 ─────────────────────────────────────────────────────────────
-    public static final Item SOLEMN_LAMENT_BLACK = new SolemnLamentItem(true,
-            new Item.Settings().maxCount(1).rarity(Rarity.EPIC));
-    public static final Item SOLEMN_LAMENT_WHITE = new SolemnLamentItem(false,
-            new Item.Settings().maxCount(1).rarity(Rarity.EPIC));
+    public static Item SOLEMN_LAMENT_BLACK;
+    public static Item SOLEMN_LAMENT_WHITE;
+    public static Item BUTTERFLY_QUARTZ;
+    public static Item SOLEMN_SHIELD;
+    public static Item MIMICRY;
+    public static Item DACAPO;
+    public static Item RING_BRUSH;
 
-    // ── 蝴蝶石英（彈藥）──────────────────────────────────────────────────────
-    public static final Item BUTTERFLY_QUARTZ = new ButterflyQuartzItem(
-            new Item.Settings().maxCount(64).rarity(Rarity.UNCOMMON));
+    public static void register() {
+        SOLEMN_LAMENT_BLACK = reg("solemn_lament_black",
+                new SolemnLamentItem(true,
+                        key("solemn_lament_black").maxCount(1).rarity(Rarity.EPIC)));
 
-    // ── 聖宣盾牌 ─────────────────────────────────────────────────────────────
-    public static final Item SOLEMN_SHIELD = new SolemnShieldItem(
-            new Item.Settings().maxCount(1).rarity(Rarity.RARE));
+        SOLEMN_LAMENT_WHITE = reg("solemn_lament_white",
+                new SolemnLamentItem(false,
+                        key("solemn_lament_white").maxCount(1).rarity(Rarity.EPIC)));
 
-    // ── 擬態 (+12 攻擊, -3.2 速度) ───────────────────────────────────────────
-    public static final Item MIMICRY = new MimicryItem(
-            new Item.Settings().maxCount(1).rarity(Rarity.EPIC)
-                    .component(DataComponentTypes.ATTRIBUTE_MODIFIERS,
-                            weaponModifiers("mimicry", 12.0, -3.2)));
+        BUTTERFLY_QUARTZ = reg("butterfly_quartz",
+                new ButterflyQuartzItem(
+                        key("butterfly_quartz").maxCount(64).rarity(Rarity.UNCOMMON)));
 
-    // ── DaCapo (+7 攻擊, -2.4 速度；實際傷害由事件處理) ──────────────────────
-    public static final Item DACAPO = new DaCapoItem(
-            new Item.Settings().maxCount(1).rarity(Rarity.EPIC)
-                    .component(DataComponentTypes.ATTRIBUTE_MODIFIERS,
-                            weaponModifiers("dacapo", 7.0, -2.4)));
+        SOLEMN_SHIELD = reg("solemn_shield",
+                new SolemnShieldItem(
+                        key("solemn_shield").maxCount(1).rarity(Rarity.RARE)));
 
-    // ── 環指筆刷 (+8 攻擊, -2.4 速度) ────────────────────────────────────────
-    public static final Item RING_BRUSH = new RingBrushItem(
-            new Item.Settings().maxCount(1).rarity(Rarity.EPIC)
-                    .component(DataComponentTypes.ATTRIBUTE_MODIFIERS,
-                            weaponModifiers("ring_brush", 8.0, -2.4)));
+        MIMICRY = reg("mimicry",
+                new MimicryItem(
+                        key("mimicry").maxCount(1).rarity(Rarity.EPIC)
+                                .component(DataComponentTypes.ATTRIBUTE_MODIFIERS,
+                                        weaponModifiers("mimicry", 12.0, -3.2))));
 
-    // ── 工廠方法 ──────────────────────────────────────────────────────────────
+        DACAPO = reg("dacapo",
+                new DaCapoItem(
+                        key("dacapo").maxCount(1).rarity(Rarity.EPIC)
+                                .component(DataComponentTypes.ATTRIBUTE_MODIFIERS,
+                                        weaponModifiers("dacapo", 7.0, -2.4))));
+
+        RING_BRUSH = reg("ring_brush",
+                new RingBrushItem(
+                        key("ring_brush").maxCount(1).rarity(Rarity.EPIC)
+                                .component(DataComponentTypes.ATTRIBUTE_MODIFIERS,
+                                        weaponModifiers("ring_brush", 8.0, -2.4))));
+
+        ItemGroupEvents.modifyEntriesEvent(ItemGroups.COMBAT).register(e -> {
+            e.add(SOLEMN_LAMENT_BLACK);
+            e.add(SOLEMN_LAMENT_WHITE);
+            e.add(BUTTERFLY_QUARTZ);
+            e.add(SOLEMN_SHIELD);
+            e.add(MIMICRY);
+            e.add(DACAPO);
+            e.add(RING_BRUSH);
+        });
+    }
+
+    private static Item.Settings key(String name) {
+        return new Item.Settings()
+                .registryKey(RegistryKey.of(RegistryKeys.ITEM,
+                        Identifier.of(LimbusWeaponsMod.MOD_ID, name)));
+    }
 
     private static AttributeModifiersComponent weaponModifiers(String id, double damage, double speed) {
         return AttributeModifiersComponent.builder()
@@ -67,29 +95,7 @@ public class ModItems {
                 .build();
     }
 
-    // ── 註冊 ──────────────────────────────────────────────────────────────────
-
-    public static void register() {
-        reg("solemn_lament_black", SOLEMN_LAMENT_BLACK);
-        reg("solemn_lament_white", SOLEMN_LAMENT_WHITE);
-        reg("butterfly_quartz",    BUTTERFLY_QUARTZ);
-        reg("solemn_shield",       SOLEMN_SHIELD);
-        reg("mimicry",             MIMICRY);
-        reg("dacapo",              DACAPO);
-        reg("ring_brush",          RING_BRUSH);
-
-        ItemGroupEvents.modifyEntriesEvent(ItemGroups.COMBAT).register(e -> {
-            e.add(SOLEMN_LAMENT_BLACK);
-            e.add(SOLEMN_LAMENT_WHITE);
-            e.add(BUTTERFLY_QUARTZ);
-            e.add(SOLEMN_SHIELD);
-            e.add(MIMICRY);
-            e.add(DACAPO);
-            e.add(RING_BRUSH);
-        });
-    }
-
-    private static void reg(String name, Item item) {
-        Registry.register(Registries.ITEM, Identifier.of(LimbusWeaponsMod.MOD_ID, name), item);
+    private static <T extends Item> T reg(String name, T item) {
+        return Registry.register(Registries.ITEM, Identifier.of(LimbusWeaponsMod.MOD_ID, name), item);
     }
 }
