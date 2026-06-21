@@ -150,7 +150,7 @@ public class solemnlament {
                     "&#FFFFFF生&#D8D8D8蝶&#B1B1B1、&#8A8A8A亡&#636363蝶",
                     "&x&F&F&F&F&F&F人&x&D&1&D&1&D&1死&x&A&3&A&3&A&3後&x&7&4&7&4&7&4會&x&4&6&4&6&4&6去&x&7&4&7&4&7&4往&x&A&3&A&3&A&3何&x&D&1&D&1&D&1方&x&F&F&F&F&F&F？",
                     "solemnlament:butterflies", "butterfly");
-            case "shield"      -> buildItem(Material.TRIAL_KEY,  1005,
+            case "shield"      -> buildItem(Material.SHIELD,  1005,
                     "&#FFFFFF&l聖宣",
                     "&x&F&F&F&F&F&F人&x&D&1&D&1&D&1死&x&A&3&A&3&A&3後&x&7&4&7&4&7&4會&x&4&6&4&6&4&6去&x&7&4&7&4&7&4往&x&A&3&A&3&A&3何&x&D&1&D&1&D&1方&x&F&F&F&F&F&F？",
                     "solemnlament:solemn_lament_shield", "solemn_shield");
