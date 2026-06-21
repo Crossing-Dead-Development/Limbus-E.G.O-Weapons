@@ -29,7 +29,7 @@ public class solemnlament {
     }
 
     public boolean isButterfly(ItemStack item) {
-        if (item == null || item.getType() != Material.QUARTZ) return false;
+        if (item == null || item.getType() != Material.ARROW) return false;
         return hasId(item, "butterfly");
     }
 
@@ -138,15 +138,15 @@ public class solemnlament {
 
     public ItemStack createItem(String type) {
         return switch (type.toLowerCase()) {
-            case "black"       -> buildItem(Material.TRIDENT, 1002,
+            case "black"       -> buildItem(Material.BOW, 1002,
                     "&#333333&l莊嚴哀悼",
                     "&x&F&F&F&F&F&F人&x&D&1&D&1&D&1死&x&A&3&A&3&A&3後&x&7&4&7&4&7&4會&x&4&6&4&6&4&6去&x&7&4&7&4&7&4往&x&A&3&A&3&A&3何&x&D&1&D&1&D&1方&x&F&F&F&F&F&F？",
                     "solemnlament:solemn_lament_black", "solemn_lament");
-            case "white"       -> buildItem(Material.TRIDENT, 1003,
+            case "white"       -> buildItem(Material.BOW, 1003,
                     "&#FFFFFF&l莊嚴哀悼",
                     "&x&F&F&F&F&F&F人&x&D&1&D&1&D&1死&x&A&3&A&3&A&3後&x&7&4&7&4&7&4會&x&4&6&4&6&4&6去&x&7&4&7&4&7&4往&x&A&3&A&3&A&3何&x&D&1&D&1&D&1方&x&F&F&F&F&F&F？",
                     "solemnlament:solemn_lament_white", "solemn_lament");
-            case "butterflies" -> buildItem(Material.QUARTZ,  1004,
+            case "butterflies" -> buildItem(Material.ARROW,  1004,
                     "&#FFFFFF生&#D8D8D8蝶&#B1B1B1、&#8A8A8A亡&#636363蝶",
                     "&x&F&F&F&F&F&F人&x&D&1&D&1&D&1死&x&A&3&A&3&A&3後&x&7&4&7&4&7&4會&x&4&6&4&6&4&6去&x&7&4&7&4&7&4往&x&A&3&A&3&A&3何&x&D&1&D&1&D&1方&x&F&F&F&F&F&F？",
                     "solemnlament:butterflies", "butterfly");

@@ -36,8 +36,8 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
     private final Map<UUID, Long> solemnCooldowns = new HashMap<>();
     private solemnlament solemn;
 
-    private static final String PACK_URL  = "https://github.com/EvansGoethe/Limbus-E.G.O-weapon-plugin-ResourcePack/releases/download/2.1/Limbus_E.G.O_Weapons_plugin_ResourcePack.v.2.1.zip";
-    private static final String PACK_HASH = "d7196f0330a7e8c946fb131d96ac8dc283673ff2";
+    private static final String PACK_URL  = "https://github.com/EvansGoethe/Limbus-E.G.O-weapon-plugin-ResourcePack/releases/download/2.2/Limbus_E.G.O_Weapons_plugin_ResourcePack.v.2.2.zip";
+    private static final String PACK_HASH = "60b9a46ccb97319b6120d74ce11ee22a5408ae37";
     private static final java.util.UUID PACK_UUID = java.util.UUID.nameUUIDFromBytes(
             PACK_URL.getBytes(java.nio.charset.StandardCharsets.UTF_8));
 
@@ -139,9 +139,9 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
         }
     }
 
-    // ── 莊嚴哀悼射擊（三叉戟蓄力 → 右鍵開始蓄力播放裝填音；放開時攔截投擲、改發蝴蝶石英）──
+    // ── 莊嚴哀悼射擊（弓拉弓 → 右鍵拉弓播放裝填音；放開時攔截箭矢、改發蝴蝶彈幕）──
 
-    // 右鍵開始蓄力：播放裝填音；若無彈藥則取消蓄力。
+    // 右鍵拉弓：播放裝填音。弓本身需有蝴蝶彈藥（ARROW）才拉得開，這裡只負責音效。
     @EventHandler(priority = EventPriority.LOWEST)
     public void onWeaponInteract(PlayerInteractEvent event) {
         if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
@@ -150,47 +150,47 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
         ItemStack item = event.getItem();
         if (item == null || !solemn.isSolemnLament(item)) return;
 
-        // 沒有蝴蝶石英（且非創造）→ 不允許蓄力
-        if (!solemn.hasButterflyQuartz(player) && player.getGameMode() != GameMode.CREATIVE) {
-            event.setCancelled(true);
-            return;
-        }
+        // 無蝴蝶彈藥（且非創造）→ 弓本來就拉不開，不播放音效
+        if (!solemn.hasButterflyQuartz(player) && player.getGameMode() != GameMode.CREATIVE) return;
 
         int quickLevel = item.getEnchantmentLevel(org.bukkit.enchantments.Enchantment.QUICK_CHARGE);
         String loadSound = (quickLevel > 0)
                 ? "solemnlament:solemn.quick_load." + Math.min(quickLevel, 3)
                 : "solemnlament:solemn.load";
         player.getWorld().playSound(player.getLocation(), loadSound, 0.6f, 1.0f);
-        // 不取消事件：讓三叉戟正常進入蓄力（舉手）動畫
+        // 不取消事件：讓弓正常拉開（舉手）動畫
     }
 
-    // 放開三叉戟：攔截投擲，物品留在手上，改發蝴蝶石英彈幕。
+    // 放開弓：攔截原版箭矢，改發蝴蝶彈幕。普通弓弩不得使用蝴蝶彈藥。
     @EventHandler
-    public void onTridentLaunch(com.destroystokyo.paper.event.player.PlayerLaunchProjectileEvent event) {
-        if (!(event.getProjectile() instanceof org.bukkit.entity.Trident)) return;
-        ItemStack item = event.getItemStack();
-        if (item == null || !solemn.isSolemnLament(item)) return;
+    public void onSolemnBowShoot(org.bukkit.event.entity.EntityShootBowEvent event) {
+        if (!(event.getEntity() instanceof Player player)) return;
+        ItemStack bow = event.getBow();
 
-        // 一律攔截：不射出三叉戟、不離手
-        event.setShouldConsume(false);
+        // 不是莊嚴哀悼：若用了蝴蝶彈藥則擋下（蝴蝶彈藥專屬莊嚴哀悼）
+        if (bow == null || !solemn.isSolemnLament(bow)) {
+            if (solemn.isButterfly(event.getConsumable())) event.setCancelled(true);
+            return;
+        }
+
+        // 攔截：不射出原版箭矢、不耗箭、不損耐久
         event.setCancelled(true);
 
-        Player player = event.getPlayer();
         long now = System.currentTimeMillis();
-        int quickLevel = item.getEnchantmentLevel(org.bukkit.enchantments.Enchantment.QUICK_CHARGE);
+        int quickLevel = bow.getEnchantmentLevel(org.bukkit.enchantments.Enchantment.QUICK_CHARGE);
         long cooldown = quickLevel > 0 ? Math.max(400L, 1200L - quickLevel * 300L) : 1200L;
         if (now - solemnCooldowns.getOrDefault(player.getUniqueId(), 0L) < cooldown) return;
 
-        ItemStack quartz = solemn.findButterflyQuartz(player);
-        if (quartz == null && player.getGameMode() != GameMode.CREATIVE) return;
-        if (quartz != null) quartz.setAmount(quartz.getAmount() - 1);
+        ItemStack ammo = solemn.findButterflyQuartz(player);
+        if (ammo == null && player.getGameMode() != GameMode.CREATIVE) return;
+        if (ammo != null) ammo.setAmount(ammo.getAmount() - 1);
 
         solemnCooldowns.put(player.getUniqueId(), now);
 
-        ItemMeta meta = item.getItemMeta();
+        ItemMeta meta = bow.getItemMeta();
         String model = (meta != null && meta.getItemModel() != null)
                 ? meta.getItemModel().toString() : "";
-        solemn.handleShootManual(player, item, model);
+        solemn.handleShootManual(player, bow, model);
     }
 
     @EventHandler
@@ -230,19 +230,6 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
         if (ego instanceof ringbrush brush) {
             brush.handleInteractEntity(player, target);
         }
-    }
-
-    // ── 防止蝴蝶石英誤觸發普通弓弩 ───────────────────────────────────────────
-
-    @EventHandler
-    public void onPlayerInteract(PlayerInteractEvent event) {
-        if (!event.getAction().name().contains("RIGHT_CLICK")) return;
-        Player player = event.getPlayer();
-        ItemStack mainHand = player.getInventory().getItemInMainHand();
-        ItemStack offHand  = player.getInventory().getItemInOffHand();
-
-        if (solemn.isButterfly(offHand) && isNormalWeapon(mainHand)) event.setCancelled(true);
-        else if (solemn.isButterfly(mainHand) && isNormalWeapon(offHand)) event.setCancelled(true);
     }
 
     // ── 指令 ─────────────────────────────────────────────────────────────────
@@ -301,14 +288,6 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
             return completions.stream().filter(s -> s.startsWith(args[0].toLowerCase())).toList();
         }
         return Collections.emptyList();
-    }
-
-    // ── 私有輔助方法 ─────────────────────────────────────────────────────────
-
-    private boolean isNormalWeapon(ItemStack item) {
-        if (item == null) return false;
-        Material type = item.getType();
-        return (type == Material.CROSSBOW || type == Material.BOW) && !solemn.isSolemnLament(item);
     }
 
     // ── 顏色代碼工具 ─────────────────────────────────────────────────────────
