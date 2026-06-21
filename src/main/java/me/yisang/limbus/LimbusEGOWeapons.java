@@ -35,6 +35,7 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
     private final Map<String, EGOWeapon> weaponModules = new HashMap<>();
     private final Map<UUID, Long> solemnCooldowns = new HashMap<>();
     private solemnlament solemn;
+    private SoundSuppressor soundSuppressor;
 
     private static final String PACK_URL  = "https://github.com/EvansGoethe/Limbus-E.G.O-weapon-plugin-ResourcePack/releases/download/2.2/Limbus_E.G.O_Weapons_plugin_ResourcePack.v.2.2.zip";
     private static final String PACK_HASH = "60b9a46ccb97319b6120d74ce11ee22a5408ae37";
@@ -86,6 +87,20 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
         startShieldTick();
 
         getServer().getPluginManager().registerEvents(this, this);
+
+        // 原版弓箭聲音攔截（需 ProtocolLib）
+        if (getServer().getPluginManager().isPluginEnabled("ProtocolLib")) {
+            try {
+                soundSuppressor = new SoundSuppressor(this);
+                soundSuppressor.register();
+                getLogger().info("已啟用原版弓箭聲音攔截 (ProtocolLib)。");
+            } catch (Throwable t) {
+                soundSuppressor = null;
+                getLogger().warning("ProtocolLib 聲音攔截初始化失敗：" + t.getMessage());
+            }
+        } else {
+            getLogger().info("未偵測到 ProtocolLib，跳過原版弓箭聲音攔截。");
+        }
 
         if (getCommand("getego") != null) {
             getCommand("getego").setExecutor(this);
@@ -150,8 +165,11 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
         ItemStack item = event.getItem();
         if (item == null || !solemn.isSolemnLament(item)) return;
 
-        // 無蝴蝶彈藥（且非創造）→ 弓本來就拉不開，不播放音效
-        if (!solemn.hasButterflyQuartz(player) && player.getGameMode() != GameMode.CREATIVE) return;
+        // 無蝴蝶彈藥 → 不准拉弓（含創造、含背包有普通箭的情況）
+        if (!solemn.hasButterflyQuartz(player)) {
+            event.setCancelled(true);
+            return;
+        }
 
         int quickLevel = item.getEnchantmentLevel(org.bukkit.enchantments.Enchantment.QUICK_CHARGE);
         String loadSound = (quickLevel > 0)
@@ -182,10 +200,13 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
         if (now - solemnCooldowns.getOrDefault(player.getUniqueId(), 0L) < cooldown) return;
 
         ItemStack ammo = solemn.findButterflyQuartz(player);
-        if (ammo == null && player.getGameMode() != GameMode.CREATIVE) return;
-        if (ammo != null) ammo.setAmount(ammo.getAmount() - 1);
+        if (ammo == null) return; // 一律需要蝴蝶彈藥才能擊發
+        if (player.getGameMode() != GameMode.CREATIVE) ammo.setAmount(ammo.getAmount() - 1);
 
         solemnCooldowns.put(player.getUniqueId(), now);
+
+        // 抑制這次射擊在玩家附近的原版弓箭聲音
+        if (soundSuppressor != null) soundSuppressor.mark(player);
 
         ItemMeta meta = bow.getItemMeta();
         String model = (meta != null && meta.getItemModel() != null)
