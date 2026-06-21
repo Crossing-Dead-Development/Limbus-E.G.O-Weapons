@@ -10,7 +10,12 @@
   "entrypoints": {
     "main": ["me.yisang.limbusweapons.LimbusWeaponsMod"]
   },
-  "mixins": [],
+  "mixins": [
+    {
+      "config": "limbusweapons.client.mixins.json",
+      "environment": "client"
+    }
+  ],
   "depends": {
     "fabricloader": ">=${loader_version}",
     "fabric-api": "*",
