@@ -2,8 +2,7 @@ package me.yisang.limbus;
 
 import org.bukkit.*;
 import org.bukkit.entity.*;
-import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.entity.EntityShootBowEvent;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.metadata.FixedMetadataValue;
@@ -16,101 +15,156 @@ import java.util.List;
 
 public class solemnlament {
     private final LimbusEGOWeapons plugin;
-    // --- 新增：定義隱形印章的 Key ---
     private final NamespacedKey ITEM_ID_KEY;
 
     public solemnlament(LimbusEGOWeapons plugin) {
         this.plugin = plugin;
-        // 初始化 Key
-        this.ITEM_ID_KEY = new NamespacedKey(plugin, "item_id");
+        this.ITEM_ID_KEY = plugin.getItemIdKey();
     }
 
-    // --- 輔助判斷工具 ---
+    // ── 識別工具 ─────────────────────────────────────────────────────────────
+
     public boolean hasId(ItemStack item, String id) {
-        if (item == null || !item.hasItemMeta()) return false;
-        // 獲取印章數值
-        String value = item.getItemMeta().getPersistentDataContainer().get(ITEM_ID_KEY, PersistentDataType.STRING);
-        // 確保 value 不是 null 且完全匹配 id[cite: 3]
-        return value != null && value.equals(id);
+        return plugin.hasItemId(item, id);
     }
 
     public boolean isButterfly(ItemStack item) {
         if (item == null || item.getType() != Material.QUARTZ) return false;
-        return hasId(item, "butterfly"); // 直接用印章判定，最準確！[cite: 3, 5]
+        return hasId(item, "butterfly");
     }
 
     public boolean isSolemnLament(ItemStack item) {
         return hasId(item, "solemn_lament");
     }
 
-    // 更新：現在只認印章，不再理會 model 字串裡有沒有 "butterflies"
     public boolean hasButterflyQuartz(Player player) {
+        return findButterflyQuartz(player) != null;
+    }
+
+    public ItemStack findButterflyQuartz(Player player) {
         for (ItemStack item : player.getInventory().getContents()) {
-            if (isButterfly(item)) return true;
+            if (isButterfly(item)) return item;
         }
-        return false;
+        return null;
     }
 
-    // --- 事件處理邏輯 ---
-    public void handleShoot(EntityShootBowEvent event, Player player, String model) {
-        if (!hasButterflyQuartz(player)) {
-            event.setCancelled(true);
-            return;
+    // ── 射擊邏輯 ──────────────────────────────────────────────────────────────
+
+    public void handleShootManual(Player player, ItemStack bow, String model) {
+        // 以蝴蝶石英外觀作為投射物實體
+        ItemStack projectileItem = new ItemStack(Material.QUARTZ);
+        ItemMeta projMeta = projectileItem.getItemMeta();
+        if (projMeta != null) {
+            projMeta.setItemModel(NamespacedKey.fromString("solemnlament:butterflies"));
+            projMeta.setCustomModelData(1004);
+            projectileItem.setItemMeta(projMeta);
         }
 
-        player.getWorld().playSound(player.getLocation(), "solemnlament:solemn.shoot", 1.0f, 1.0f);
-    }
+        Item thrown = player.getWorld().dropItem(player.getEyeLocation(), projectileItem);
+        thrown.setPickupDelay(Integer.MAX_VALUE);
+        thrown.setVelocity(player.getLocation().getDirection().multiply(3.0));
 
-    public void handleArrowHit(EntityDamageByEntityEvent event, Arrow arrow, Player shooter) {
-        arrow.getWorld().playSound(arrow.getLocation(), "solemnlament:solemn.hit", 1.0f, 1.0f);
-        arrow.getWorld().spawnParticle(Particle.SQUID_INK, arrow.getLocation(), 15, 0.1, 0.1, 0.1, 0.05);
+        boolean isBlack = model.contains("black");
+        thrown.setMetadata("solemn_arrow", new FixedMetadataValue(plugin, isBlack ? "black" : "white"));
 
-        if (event.getEntity() instanceof LivingEntity target) {
-            ItemStack weapon = shooter.getInventory().getItemInMainHand();
-            // 改用印章判斷武器，避免名稱顏色代碼干擾
-            if (isSolemnLament(weapon)) {
-                String modelStr = (weapon.getItemMeta().getItemModel() != null) ? weapon.getItemMeta().getItemModel().toString() : "";
-                if (modelStr.contains("black")) {
-                    target.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 80, 1));
-                } else if (modelStr.contains("white")) {
-                    event.setDamage(event.getDamage() * 0.5);
-                    target.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 60, 0));
+        new BukkitRunnable() {
+            private int ticksAlive = 0;
+            @Override
+            public void run() {
+                if (!thrown.isValid() || thrown.isDead()) {
+                    this.cancel();
+                    return;
+                }
+
+                ticksAlive++;
+                if (ticksAlive > 100) { // 5 秒後自動移除
+                    thrown.remove();
+                    this.cancel();
+                    return;
+                }
+
+                // 粒子軌跡
+                thrown.getWorld().spawnParticle(Particle.SQUID_INK, thrown.getLocation(), 2, 0.02, 0.02, 0.02, 0.01);
+                thrown.getWorld().spawnParticle(Particle.WHITE_ASH, thrown.getLocation(), 4, 0.05, 0.05, 0.05, 0.01);
+
+                // 落地時爆出粒子並移除
+                if (thrown.isOnGround()) {
+                    thrown.getWorld().spawnParticle(Particle.SQUID_INK, thrown.getLocation(), 8, 0.1, 0.1, 0.1, 0.05);
+                    thrown.remove();
+                    this.cancel();
+                    return;
+                }
+
+                // 命中偵測：掃描 0.8 格內的生物
+                for (Entity e : thrown.getNearbyEntities(0.8, 0.8, 0.8)) {
+                    if (!(e instanceof LivingEntity target)) continue;
+                    if (e.equals(player)) continue;
+
+                    thrown.getWorld().playSound(thrown.getLocation(), "solemnlament:solemn.hit", 1.0f, 1.0f);
+                    thrown.getWorld().spawnParticle(Particle.SQUID_INK, thrown.getLocation(), 15, 0.1, 0.1, 0.1, 0.05);
+
+                    if (isBlack) {
+                        target.damage(8.0, player);
+                        target.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 80, 1));
+                    } else {
+                        target.damage(4.0, player);
+                        target.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 60, 0));
+                    }
+
+                    thrown.remove();
+                    this.cancel();
+                    return;
                 }
             }
+        }.runTaskTimer(plugin, 0L, 1L);
 
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    target.setArrowsInBody(0);
-                    arrow.remove();
-                }
-            }.runTaskLater(plugin, 1L);
-        }
+        player.getWorld().playSound(player.getLocation(), "solemnlament:solemn.shoot", 0.8f, 1.0f);
     }
+
+    // ── 聖宣盾牌 Tick 邏輯（由 LimbusEGOWeapons.startShieldTick 每 5 tick 呼叫）──
 
     public void handleShieldTick(Player player, ItemStack item) {
-        if (item == null || !item.hasItemMeta() || item.getItemMeta().getItemModel() == null) return;
-        if (item.getItemMeta().getItemModel().toString().contains("solemn_lament_shield")) {
-            player.getWorld().spawnParticle(Particle.WHITE_ASH, player.getLocation().add(0, 1, 0), 8, 0.4, 0.4, 0.4, 0.02);
-            player.getNearbyEntities(5, 5, 5).forEach(e -> {
-                if (e instanceof LivingEntity target && !e.equals(player)) {
-                    target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 1));
-                }
-            });
-        }
+        player.getWorld().spawnParticle(
+                Particle.WHITE_ASH, player.getLocation().add(0, 1, 0),
+                8, 0.4, 0.4, 0.4, 0.02);
+        player.getNearbyEntities(5, 5, 5).forEach(e -> {
+            if (e instanceof LivingEntity target && !e.equals(player)) {
+                target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 1));
+            }
+        });
     }
 
-    // --- 給予物品邏輯 ---
+    // ── 給予物品 ──────────────────────────────────────────────────────────────
+
+    public ItemStack createItem(String type) {
+        return switch (type.toLowerCase()) {
+            case "black"       -> buildItem(Material.EMERALD, 1002,
+                    "&#333333&l莊嚴哀悼",
+                    "&x&F&F&F&F&F&F人&x&D&1&D&1&D&1死&x&A&3&A&3&A&3後&x&7&4&7&4&7&4會&x&4&6&4&6&4&6去&x&7&4&7&4&7&4往&x&A&3&A&3&A&3何&x&D&1&D&1&D&1方&x&F&F&F&F&F&F？",
+                    "solemnlament:solemn_lament_black", "solemn_lament");
+            case "white"       -> buildItem(Material.AMETHYST_SHARD, 1003,
+                    "&#FFFFFF&l莊嚴哀悼",
+                    "&x&F&F&F&F&F&F人&x&D&1&D&1&D&1死&x&A&3&A&3&A&3後&x&7&4&7&4&7&4會&x&4&6&4&6&4&6去&x&7&4&7&4&7&4往&x&A&3&A&3&A&3何&x&D&1&D&1&D&1方&x&F&F&F&F&F&F？",
+                    "solemnlament:solemn_lament_white", "solemn_lament");
+            case "butterflies" -> buildItem(Material.QUARTZ,  1004,
+                    "&#FFFFFF生&#D8D8D8蝶&#B1B1B1、&#8A8A8A亡&#636363蝶",
+                    "&x&F&F&F&F&F&F人&x&D&1&D&1&D&1死&x&A&3&A&3&A&3後&x&7&4&7&4&7&4會&x&4&6&4&6&4&6去&x&7&4&7&4&7&4往&x&A&3&A&3&A&3何&x&D&1&D&1&D&1方&x&F&F&F&F&F&F？",
+                    "solemnlament:butterflies", "butterfly");
+            case "shield"      -> buildItem(Material.TRIAL_KEY,  1005,
+                    "&#FFFFFF&l聖宣",
+                    "&x&F&F&F&F&F&F人&x&D&1&D&1&D&1死&x&A&3&A&3&A&3後&x&7&4&7&4&7&4會&x&4&6&4&6&4&6去&x&7&4&7&4&7&4往&x&A&3&A&3&A&3何&x&D&1&D&1&D&1方&x&F&F&F&F&F&F？",
+                    "solemnlament:solemn_lament_shield", "solemn_shield");
+            default -> null;
+        };
+    }
+
     public void give(Player player, String type) {
-        switch (type.toLowerCase()) {
-            case "black" -> giveItem(player, Material.BOW, 1002, "&#333333&l莊嚴哀悼", "&x&F&F&F&F&F&F人&x&D&1&D&1&D&1死&x&A&3&A&3&A&3後&x&7&4&7&4&7&4會&x&4&6&4&6&4&6去&x&7&4&7&4&7&4往&x&A&3&A&3&A&3何&x&D&1&D&1&D&1方&x&F&F&F&F&F&F？", "solemnlament:solemn_lament_black", "solemn_lament");
-            case "white" -> giveItem(player, Material.CROSSBOW, 1003, "&#FFFFFF&l莊嚴哀悼", "&x&F&F&F&F&F&F人&x&D&1&D&1&D&1死&x&A&3&A&3&A&3後&x&7&4&7&4&7&4會&x&4&6&4&6&4&6去&x&7&4&7&4&7&4往&x&A&3&A&3&A&3何&x&D&1&D&1&D&1方&x&F&F&F&F&F&F？", "solemnlament:solemn_lament_white", "solemn_lament");
-            case "butterflies" -> giveItem(player, Material.QUARTZ, 1004, "&#FFFFFF生&#D8D8D8蝶&#B1B1B1、&#8A8A8A亡&#636363蝶", "&x&F&F&F&F&F&F人&x&D&1&D&1&D&1死&x&A&3&A&3&A&3後&x&7&4&7&4&7&4會&x&4&6&4&6&4&6去&x&7&4&7&4&7&4往&x&A&3&A&3&A&3何&x&D&1&D&1&D&1方&x&F&F&F&F&F&F？", "solemnlament:butterflies", "butterfly");
-            case "shield" -> giveItem(player, Material.SHIELD, 1005, "&#FFFFFF&l聖宣", "&x&F&F&F&F&F&F人&x&D&1&D&1&D&1死&x&A&3&A&3&A&3後&x&7&4&7&4&7&4會&x&4&6&4&6&4&6去&x&7&4&7&4&7&4往&x&A&3&A&3&A&3何&x&D&1&D&1&D&1方&x&F&F&F&F&F&F？", "solemnlament:solemn_lament_shield", "solemn_shield");
-        }
+        ItemStack item = createItem(type);
+        if (item != null) player.getInventory().addItem(item);
     }
 
-    private void giveItem(Player player, Material material, int cmdData, String name, String lore, String model, String id) {
+    private ItemStack buildItem(Material material, int cmdData,
+                                String name, String lore, String model, String id) {
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
@@ -118,43 +172,12 @@ public class solemnlament {
             meta.setLore(List.of(plugin.translateHexColorCodes(lore)));
             meta.setCustomModelData(cmdData);
             meta.setItemModel(NamespacedKey.fromString(model));
-            meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ATTRIBUTES);
-
-            // 在這裡蓋上隱形印章
+            meta.setUnbreakable(true);
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE,
+                    ItemFlag.HIDE_ENCHANTS);
             meta.getPersistentDataContainer().set(ITEM_ID_KEY, PersistentDataType.STRING, id);
-
             item.setItemMeta(meta);
         }
-        player.getInventory().addItem(item);
-    }
-    public void handleShootManual(Player player, ItemStack bow, String model) {
-        Arrow arrow = player.launchProjectile(Arrow.class);
-        arrow.setPickupStatus(AbstractArrow.PickupStatus.DISALLOWED);
-        arrow.setVelocity(player.getLocation().getDirection().multiply(3.0)); // 模擬弩的初速
-        arrow.setDamage(8.0);
-        // --- 優化標籤邏輯 ---
-        // 統一使用字串標籤，這樣 onHit 才能判斷顏色
-        if (model.contains("black")) {
-            arrow.setMetadata("solemn_arrow", new FixedMetadataValue(plugin, "black"));
-        } else {
-            arrow.setMetadata("solemn_arrow", new FixedMetadataValue(plugin, "white"));
-        }
-
-        // --- 補上粒子特效 ---
-        // 既然手動生成了箭，就要手動啟動粒子追蹤任務
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (arrow.isDead() || !arrow.isValid() || arrow.isOnGround()) {
-                    this.cancel();
-                    return;
-                }
-                // 莊嚴哀悼的標誌性粒子
-                arrow.getWorld().spawnParticle(Particle.SQUID_INK, arrow.getLocation(), 2, 0.02, 0.02, 0.02, 0.01);
-                arrow.getWorld().spawnParticle(Particle.WHITE_ASH, arrow.getLocation(), 4, 0.05, 0.05, 0.05, 0.01);
-            }
-        }.runTaskTimer(plugin, 0L, 1L);
-
-        player.getWorld().playSound(player.getLocation(), "solemnlament:solemn.shoot", 0.8f, 1.0f);
+        return item;
     }
 }
