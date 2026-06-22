@@ -51,57 +51,60 @@ public class solemnlament {
     // ── 射擊邏輯 ──────────────────────────────────────────────────────────────
 
     public void handleShootManual(Player player, ItemStack bow, String model) {
-        // 以蝴蝶石英外觀作為投射物實體
-        ItemStack projectileItem = new ItemStack(Material.QUARTZ);
+        // 以「飛行中蝴蝶」扁平模型作為投射物外觀
+        ItemStack projectileItem = new ItemStack(Material.PAPER);
         ItemMeta projMeta = projectileItem.getItemMeta();
         if (projMeta != null) {
-            projMeta.setItemModel(NamespacedKey.fromString("solemnlament:butterflies"));
-            projMeta.setCustomModelData(1004);
+            projMeta.setItemModel(NamespacedKey.fromString("solemnlament:butterflies_hit"));
             projectileItem.setItemMeta(projMeta);
         }
 
-        Item thrown = player.getWorld().dropItem(player.getEyeLocation(), projectileItem);
-        thrown.setPickupDelay(Integer.MAX_VALUE);
-        thrown.setVelocity(player.getLocation().getDirection().multiply(3.0));
+        org.bukkit.Location spawnLoc = player.getEyeLocation();
+        final org.bukkit.util.Vector initialVel = player.getLocation().getDirection().multiply(3.0);
+        final boolean isBlack = model.contains("black");
 
-        boolean isBlack = model.contains("black");
-        thrown.setMetadata("solemn_arrow", new FixedMetadataValue(plugin, isBlack ? "black" : "white"));
+        org.bukkit.entity.ItemDisplay display = player.getWorld().spawn(
+                spawnLoc, org.bukkit.entity.ItemDisplay.class, d -> {
+            d.setItemStack(projectileItem);
+            d.setItemDisplayTransform(org.bukkit.entity.ItemDisplay.ItemDisplayTransform.FIXED);
+            d.setBillboard(org.bukkit.entity.Display.Billboard.FIXED);
+            // 短插值讓 teleport 之間視覺平滑
+            d.setInterpolationDuration(1);
+            d.setTeleportDuration(1);
+            applyVelocityRotation(d, initialVel);
+        });
+        display.setMetadata("solemn_arrow",
+                new FixedMetadataValue(plugin, isBlack ? "black" : "white"));
 
         new BukkitRunnable() {
+            private final org.bukkit.util.Vector vel = initialVel.clone();
             private int ticksAlive = 0;
+
             @Override
             public void run() {
-                if (!thrown.isValid() || thrown.isDead()) {
+                if (!display.isValid() || display.isDead()) {
                     this.cancel();
                     return;
                 }
 
                 ticksAlive++;
                 if (ticksAlive > 100) { // 5 秒後自動移除
-                    thrown.remove();
+                    display.remove();
                     this.cancel();
                     return;
                 }
 
                 // 粒子軌跡
-                thrown.getWorld().spawnParticle(Particle.SQUID_INK, thrown.getLocation(), 2, 0.02, 0.02, 0.02, 0.01);
-                thrown.getWorld().spawnParticle(Particle.WHITE_ASH, thrown.getLocation(), 4, 0.05, 0.05, 0.05, 0.01);
-
-                // 落地時爆出粒子並移除
-                if (thrown.isOnGround()) {
-                    thrown.getWorld().spawnParticle(Particle.SQUID_INK, thrown.getLocation(), 8, 0.1, 0.1, 0.1, 0.05);
-                    thrown.remove();
-                    this.cancel();
-                    return;
-                }
+                display.getWorld().spawnParticle(Particle.SQUID_INK, display.getLocation(), 2, 0.02, 0.02, 0.02, 0.01);
+                display.getWorld().spawnParticle(Particle.WHITE_ASH, display.getLocation(), 4, 0.05, 0.05, 0.05, 0.01);
 
                 // 命中偵測：掃描 0.8 格內的生物
-                for (Entity e : thrown.getNearbyEntities(0.8, 0.8, 0.8)) {
+                for (org.bukkit.entity.Entity e : display.getNearbyEntities(0.8, 0.8, 0.8)) {
                     if (!(e instanceof LivingEntity target)) continue;
                     if (e.equals(player)) continue;
 
-                    thrown.getWorld().playSound(thrown.getLocation(), "solemnlament:solemn.hit", 1.0f, 1.0f);
-                    thrown.getWorld().spawnParticle(Particle.SQUID_INK, thrown.getLocation(), 15, 0.1, 0.1, 0.1, 0.05);
+                    display.getWorld().playSound(display.getLocation(), "solemnlament:solemn.hit", 1.0f, 1.0f);
+                    display.getWorld().spawnParticle(Particle.SQUID_INK, display.getLocation(), 15, 0.1, 0.1, 0.1, 0.05);
 
                     if (isBlack) {
                         target.damage(8.0, player);
@@ -111,14 +114,41 @@ public class solemnlament {
                         target.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 60, 0));
                     }
 
-                    thrown.remove();
+                    display.remove();
                     this.cancel();
                     return;
                 }
+
+                // 移動 + 落地偵測：下個位置是固體方塊就爆粒子並消失
+                org.bukkit.Location next = display.getLocation().add(vel);
+                if (next.getBlock().getType().isSolid()) {
+                    display.getWorld().spawnParticle(Particle.SQUID_INK, next, 8, 0.1, 0.1, 0.1, 0.05);
+                    display.remove();
+                    this.cancel();
+                    return;
+                }
+
+                display.teleport(next);
+                applyVelocityRotation(display, vel);
             }
         }.runTaskTimer(plugin, 0L, 1L);
 
         player.getWorld().playSound(player.getLocation(), "solemnlament:solemn.shoot", 0.8f, 1.0f);
+    }
+
+    /** 讓 ItemDisplay 的物品「看向」當前速度方向（yaw + pitch 跟著 velocity）。 */
+    private void applyVelocityRotation(org.bukkit.entity.ItemDisplay display, org.bukkit.util.Vector velocity) {
+        if (velocity.lengthSquared() < 1e-6) return;
+        org.bukkit.util.Vector dir = velocity.clone().normalize();
+        // 將物品的 -Z（generated item 的「正面」）旋轉到 velocity 方向
+        float yawRad   = (float) Math.atan2(-dir.getX(), -dir.getZ());
+        float pitchRad = (float) Math.asin(dir.getY());
+        org.joml.Quaternionf q = new org.joml.Quaternionf()
+                .rotateY(yawRad)
+                .rotateX(pitchRad);
+        org.bukkit.util.Transformation t = display.getTransformation();
+        display.setTransformation(new org.bukkit.util.Transformation(
+                t.getTranslation(), q, t.getScale(), t.getRightRotation()));
     }
 
     // ── 聖宣盾牌 Tick 邏輯（由 LimbusEGOWeapons.startShieldTick 每 5 tick 呼叫）──
