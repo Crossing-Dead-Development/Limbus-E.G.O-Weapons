@@ -292,10 +292,14 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
             Player target = Bukkit.getPlayerExact(args[1]);
             if (target == null) { sender.sendMessage("找不到玩家：" + args[1]); return true; }
             String weaponId = args[2].toLowerCase();
+            int amount = 1;
+            if (args.length >= 4) {
+                try { amount = Math.max(1, Integer.parseInt(args[3])); } catch (NumberFormatException ignored) {}
+            }
             if (weaponModules.containsKey(weaponId)) {
-                weaponModules.get(weaponId).give(target);
+                for (int i = 0; i < amount; i++) weaponModules.get(weaponId).give(target);
             } else if (List.of("black", "white", "butterflies", "shield").contains(weaponId)) {
-                solemn.give(target, weaponId);
+                solemn.give(target, weaponId, amount);
             }
             return true;
         }

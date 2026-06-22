@@ -81,8 +81,11 @@
 | `/getego dacapo` | 取得 DaCapo |
 | `/getego brush` | 取得環指筆刷 |
 | `/getego admin` | 開啟管理員 GUI |
+| `/getego give <玩家> <武器ID> [數量]` | 給予指定玩家武器（可由主控台執行；`[數量]` 預設 1，可堆疊物品如 `butterflies` 會依最大堆疊自動分堆） |
 
-> 需要權限節點 `limbus.admin` 或 OP。
+> 需要權限節點 `limbus.admin` 或 OP（主控台不受限）。
+>
+> 武器 ID：`black`、`white`、`butterflies`、`shield`、`mimicry`、`dacapo`、`brush`
 
 ---
 

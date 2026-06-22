@@ -189,8 +189,20 @@ public class solemnlament {
     }
 
     public void give(Player player, String type) {
-        ItemStack item = createItem(type);
-        if (item != null) player.getInventory().addItem(item);
+        give(player, type, 1);
+    }
+
+    public void give(Player player, String type, int amount) {
+        if (amount < 1) amount = 1;
+        int remaining = amount;
+        while (remaining > 0) {
+            ItemStack item = createItem(type);
+            if (item == null) return;
+            int stack = Math.min(remaining, item.getMaxStackSize());
+            item.setAmount(stack);
+            player.getInventory().addItem(item);
+            remaining -= stack;
+        }
     }
 
     /** 為莊嚴哀悼弩附加「快速上弦 V」隱藏附魔（無 tooltip、無閃光）。 */
