@@ -38,8 +38,8 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
     private TiantuiStar tiantui;
     private SoundSuppressor soundSuppressor;
 
-    private static final String PACK_URL  = "https://github.com/EvansGoethe/Limbus-E.G.O-weapon-plugin-ResourcePack/releases/download/2.9/Limbus_E.G.O_Weapons_plugin_ResourcePack.v.2.9.zip";
-    private static final String PACK_HASH = "ff9c9713e315d38aff644fd4c79062629dd6e1fc";
+    private static final String PACK_URL  = "https://github.com/EvansGoethe/Limbus-E.G.O-weapon-plugin-ResourcePack/releases/download/2.10/Limbus_E.G.O_Weapons_plugin_ResourcePack.v.2.10.zip";
+    private static final String PACK_HASH = "0473dbd409bba820719505d21ff5b9b6d826c913";
     private static final java.util.UUID PACK_UUID = java.util.UUID.nameUUIDFromBytes(
             PACK_URL.getBytes(java.nio.charset.StandardCharsets.UTF_8));
 
