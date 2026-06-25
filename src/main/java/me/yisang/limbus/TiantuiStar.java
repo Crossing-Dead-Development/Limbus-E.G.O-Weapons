@@ -10,7 +10,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
@@ -272,22 +271,48 @@ public class TiantuiStar implements EGOWeapon, Listener {
         return free;
     }
 
-    // ── 受擊中斷 ────────────────────────────────────────────────────────────────
+    // ── 中斷條件：改變手持 / 移動 / 猛版放開蹲下；受擊不中斷 ───────────────────
 
-    @EventHandler
-    public void onDamaged(EntityDamageEvent event) {
-        if (!(event.getEntity() instanceof Player player)) return;
+    private void cancelCharge(Player player) {
         Charge c = charging.remove(player.getUniqueId());
         if (c == null) return;
         c.task().cancel();
         player.removePotionEffect(PotionEffectType.SLOWNESS);
-        // 停掉所有蓄力音檔，避免中斷後音檔還繼續播
         player.stopSound("tiantui_star:tiantui.charge_tiger");
         player.stopSound("tiantui_star:tiantui.charge_savage_1");
         player.stopSound("tiantui_star:tiantui.charge_savage_2");
         player.stopSound("tiantui_star:tiantui.charge_savage_3");
-        player.getWorld().playSound(player.getLocation(), Sound.ITEM_SHIELD_BREAK, 0.6f, 1.2f);
         player.sendActionBar(plugin.translateHexColorCodes("&#FF5555蓄力中斷"));
+    }
+
+    // 改變 hotbar 選中欄位
+    @EventHandler
+    public void onItemHeld(org.bukkit.event.player.PlayerItemHeldEvent event) {
+        if (charging.containsKey(event.getPlayer().getUniqueId())) cancelCharge(event.getPlayer());
+    }
+
+    // F 鍵交換主副手
+    @EventHandler
+    public void onSwapHand(org.bukkit.event.player.PlayerSwapHandItemsEvent event) {
+        if (charging.containsKey(event.getPlayer().getUniqueId())) cancelCharge(event.getPlayer());
+    }
+
+    // 猛版蓄力中放開蹲下：取消
+    @EventHandler
+    public void onToggleSneak(org.bukkit.event.player.PlayerToggleSneakEvent event) {
+        Charge c = charging.get(event.getPlayer().getUniqueId());
+        if (c == null || !c.savage()) return;
+        if (!event.isSneaking()) cancelCharge(event.getPlayer());
+    }
+
+    // 水平移動取消（忽略視角與 Y 軸掉落／彈跳）
+    @EventHandler
+    public void onMove(org.bukkit.event.player.PlayerMoveEvent event) {
+        if (!charging.containsKey(event.getPlayer().getUniqueId())) return;
+        if (event.getTo() == null) return;
+        double dx = event.getTo().getX() - event.getFrom().getX();
+        double dz = event.getTo().getZ() - event.getFrom().getZ();
+        if (dx * dx + dz * dz > 0.01) cancelCharge(event.getPlayer());
     }
 
     @EventHandler
