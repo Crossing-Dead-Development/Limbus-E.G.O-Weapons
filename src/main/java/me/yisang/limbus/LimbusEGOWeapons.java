@@ -35,10 +35,11 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
     private final Map<String, EGOWeapon> weaponModules = new HashMap<>();
     private final Map<UUID, Long> solemnCooldowns = new HashMap<>();
     private solemnlament solemn;
+    private TiantuiStar tiantui;
     private SoundSuppressor soundSuppressor;
 
-    private static final String PACK_URL  = "https://github.com/EvansGoethe/Limbus-E.G.O-weapon-plugin-ResourcePack/releases/download/2.5/Limbus_E.G.O_Weapons_plugin_ResourcePack.v.2.5.zip";
-    private static final String PACK_HASH = "ffc1ba0267991ceee4dac30cde6ac0b2e60546bf";
+    private static final String PACK_URL  = "https://github.com/EvansGoethe/Limbus-E.G.O-weapon-plugin-ResourcePack/releases/download/2.6/Limbus_E.G.O_Weapons_plugin_ResourcePack.v.2.6.zip";
+    private static final String PACK_HASH = "10ca4ad05f12ae60dd0c97095c3e1e40c58f4435";
     private static final java.util.UUID PACK_UUID = java.util.UUID.nameUUIDFromBytes(
             PACK_URL.getBytes(java.nio.charset.StandardCharsets.UTF_8));
 
@@ -72,17 +73,20 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
         this.ITEM_ID_KEY = new NamespacedKey(this, "item_id");
 
         this.solemn = new solemnlament(this);
-        mimicry   m = new mimicry(this);
-        dacapo    d = new dacapo(this);
-        ringbrush r = new ringbrush(this);
+        mimicry    m  = new mimicry(this);
+        dacapo     d  = new dacapo(this);
+        ringbrush  r  = new ringbrush(this);
+        this.tiantui = new TiantuiStar(this);
 
         weaponModules.put("mimicry", m);
         weaponModules.put("dacapo",  d);
         weaponModules.put("brush",   r);
+        weaponModules.put("tiantui", tiantui);
 
         registerModule(m);
         registerModule(d);
         registerModule(r);
+        registerModule(tiantui);
 
         startShieldTick();
 
@@ -296,7 +300,11 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
             if (args.length >= 4) {
                 try { amount = Math.max(1, Integer.parseInt(args[3])); } catch (NumberFormatException ignored) {}
             }
-            if (weaponModules.containsKey(weaponId)) {
+            if ("tiger_mark".equals(weaponId)) {
+                target.getInventory().addItem(tiantui.createTigerMark(amount));
+            } else if ("savage_tiger_mark".equals(weaponId)) {
+                target.getInventory().addItem(tiantui.createSavageTigerMark(amount));
+            } else if (weaponModules.containsKey(weaponId)) {
                 for (int i = 0; i < amount; i++) weaponModules.get(weaponId).give(target);
             } else if (List.of("black", "white", "butterflies", "shield").contains(weaponId)) {
                 solemn.give(target, weaponId, amount);
@@ -310,7 +318,11 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
             player.openInventory(new WeaponAdminGUI(this).getInventory());
             return true;
         }
-        if (weaponModules.containsKey(first)) {
+        if ("tiger_mark".equals(first)) {
+            player.getInventory().addItem(tiantui.createTigerMark(1));
+        } else if ("savage_tiger_mark".equals(first)) {
+            player.getInventory().addItem(tiantui.createSavageTigerMark(1));
+        } else if (weaponModules.containsKey(first)) {
             weaponModules.get(first).give(player);
         } else if (List.of("black", "white", "butterflies", "shield").contains(first)) {
             solemn.give(player, first);
@@ -322,7 +334,8 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
             List<String> completions = new ArrayList<>(
-                    List.of("brush", "black", "white", "butterflies", "shield", "mimicry", "dacapo", "admin"));
+                    List.of("brush", "black", "white", "butterflies", "shield", "mimicry", "dacapo",
+                            "tiantui", "tiger_mark", "savage_tiger_mark", "admin"));
             return completions.stream().filter(s -> s.startsWith(args[0].toLowerCase())).toList();
         }
         return Collections.emptyList();

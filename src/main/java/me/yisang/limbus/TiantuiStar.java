@@ -1,0 +1,265 @@
+package me.yisang.limbus;
+
+import org.bukkit.*;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeModifier;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.EquipmentSlotGroup;
+import org.bukkit.inventory.ItemFlag;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.util.Vector;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
+/**
+ * 天退星刀 — 居合衝刺。
+ * 近戰刀（下界合金劍）。消耗實體子彈（火藥）發動定身蓄力 → 向前衝刺，
+ * 衝刺路徑上的敵人受傷（無投射物，子彈僅為助推火藥）。
+ *  - 右鍵（虎標彈）：蓄力 1 秒 → 中速中距衝刺，路徑傷 8。
+ *  - 潛行右鍵（猛虎標彈）：蓄力 3 秒 → 更快更遠衝刺，路徑傷 18 + 凋零 II。
+ *  - 蓄力期間定身（重緩速），受擊中斷且不消耗子彈。
+ */
+public class TiantuiStar implements EGOWeapon, Listener {
+
+    private final LimbusEGOWeapons plugin;
+    private final Map<UUID, Charge> charging = new HashMap<>();
+
+    public TiantuiStar(LimbusEGOWeapons plugin) { this.plugin = plugin; }
+
+    private record Charge(boolean savage, BukkitTask task) {}
+
+    @Override
+    public String getId() { return "tiantui_star"; }
+
+    // ── 物品 ─────────────────────────────────────────────────────────────────
+
+    @Override
+    public ItemStack createItem() {
+        ItemStack item = new ItemStack(Material.NETHERITE_SWORD);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(plugin.translateHexColorCodes("&#E67E22天退星刀"));
+            meta.setLore(List.of(
+                    plugin.translateHexColorCodes("&7填入虎標彈，蓄勢，化作奔虎。"),
+                    plugin.translateHexColorCodes("&8右鍵：虎標彈衝刺　潛行右鍵：猛虎標彈衝刺")));
+            meta.setCustomModelData(1008);
+            meta.setUnbreakable(true);
+            meta.setItemModel(NamespacedKey.fromString("tiantui_star:tiantui_star"));
+            meta.addAttributeModifier(Attribute.ATTACK_DAMAGE,
+                    new AttributeModifier(new NamespacedKey(plugin, "tiantui_dmg"),
+                            8.0, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
+            meta.addAttributeModifier(Attribute.ATTACK_SPEED,
+                    new AttributeModifier(new NamespacedKey(plugin, "tiantui_spd"),
+                            -2.4, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
+            meta.getPersistentDataContainer().set(
+                    plugin.getItemIdKey(), PersistentDataType.STRING, "tiantui_star");
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    public ItemStack createTigerMark(int amount) {
+        return buildAmmo(amount, "tiger_mark", "&#E67E22虎標彈",
+                "&7助推填充火藥。");
+    }
+
+    public ItemStack createSavageTigerMark(int amount) {
+        return buildAmmo(amount, "savage_tiger_mark", "&#C0392B猛虎標彈",
+                "&7更猛烈的助推火藥。");
+    }
+
+    private ItemStack buildAmmo(int amount, String id, String name, String lore) {
+        ItemStack item = new ItemStack(Material.GUNPOWDER, Math.max(1, amount));
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(plugin.translateHexColorCodes(name));
+            meta.setLore(List.of(plugin.translateHexColorCodes(lore)));
+            meta.setItemModel(NamespacedKey.fromString("tiantui_star:" + id));
+            meta.getPersistentDataContainer().set(
+                    plugin.getItemIdKey(), PersistentDataType.STRING, id);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    // ── 近戰（無特殊效果，純刀）─────────────────────────────────────────────────
+
+    @Override
+    public void handleMelee(EntityDamageByEntityEvent event, Player attacker) { }
+
+    // ── 右鍵：開始定身蓄力 ──────────────────────────────────────────────────────
+
+    @EventHandler
+    public void onInteract(PlayerInteractEvent event) {
+        if (event.getHand() != EquipmentSlot.HAND) return;
+        Action a = event.getAction();
+        if (a != Action.RIGHT_CLICK_AIR && a != Action.RIGHT_CLICK_BLOCK) return;
+
+        Player player = event.getPlayer();
+        ItemStack item = player.getInventory().getItemInMainHand();
+        if (!plugin.hasItemId(item, "tiantui_star")) return;
+
+        event.setCancelled(true);
+        if (charging.containsKey(player.getUniqueId())) return; // 已在蓄力
+
+        boolean savage = player.isSneaking();
+        String ammoId = savage ? "savage_tiger_mark" : "tiger_mark";
+        if (!hasAmmo(player, ammoId)) {
+            player.sendActionBar(plugin.translateHexColorCodes(
+                    savage ? "&#FF5555缺少猛虎標彈" : "&#FF5555缺少虎標彈"));
+            return;
+        }
+        startCharge(player, savage);
+    }
+
+    private void startCharge(Player player, boolean savage) {
+        int ticks = savage ? 60 : 20;
+        // 定身：重緩速（不顯示圖示/粒子）
+        player.addPotionEffect(new PotionEffect(
+                PotionEffectType.SLOWNESS, ticks + 2, 200, false, false, false));
+        player.getWorld().playSound(player.getLocation(),
+                Sound.BLOCK_GRINDSTONE_USE, 0.7f, savage ? 0.6f : 1.0f);
+
+        BukkitTask task = new BukkitRunnable() {
+            int t = 0;
+            @Override
+            public void run() {
+                if (!player.isOnline() || player.isDead()) {
+                    charging.remove(player.getUniqueId());
+                    cancel();
+                    return;
+                }
+                // 蓄力環狀粒子
+                player.getWorld().spawnParticle(savage ? Particle.FLAME : Particle.CRIT,
+                        player.getLocation().add(0, 1.0, 0), savage ? 6 : 3,
+                        0.4, 0.4, 0.4, 0.01);
+                t++;
+                if (t >= ticks) {
+                    cancel();
+                    charging.remove(player.getUniqueId());
+                    fireDash(player, savage);
+                }
+            }
+        }.runTaskTimer(plugin, 1L, 1L);
+
+        charging.put(player.getUniqueId(), new Charge(savage, task));
+    }
+
+    // ── 受擊中斷 ────────────────────────────────────────────────────────────────
+
+    @EventHandler
+    public void onDamaged(EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof Player player)) return;
+        Charge c = charging.remove(player.getUniqueId());
+        if (c == null) return;
+        c.task().cancel();
+        player.removePotionEffect(PotionEffectType.SLOWNESS);
+        player.getWorld().playSound(player.getLocation(), Sound.ITEM_SHIELD_BREAK, 0.6f, 1.2f);
+        player.sendActionBar(plugin.translateHexColorCodes("&#FF5555蓄力中斷"));
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        Charge c = charging.remove(event.getPlayer().getUniqueId());
+        if (c != null) c.task().cancel();
+    }
+
+    // ── 衝刺 ────────────────────────────────────────────────────────────────────
+
+    private void fireDash(Player player, boolean savage) {
+        String ammoId = savage ? "savage_tiger_mark" : "tiger_mark";
+        if (!consumeAmmo(player, ammoId)) return; // 安全檢查：彈藥沒了就不衝
+        player.removePotionEffect(PotionEffectType.SLOWNESS);
+
+        Vector dir = player.getLocation().getDirection();
+        dir.setY(0);
+        if (dir.lengthSquared() < 1.0e-6) dir = new Vector(0, 0, 1);
+        dir.normalize();
+
+        final double speed = savage ? 1.85 : 1.2;
+        final int duration = savage ? 10 : 8;
+        final double damage = savage ? 18.0 : 8.0;
+        final Vector vel = dir.clone().multiply(speed);
+        final Set<UUID> hitOnce = new HashSet<>();
+
+        player.getWorld().playSound(player.getLocation(),
+                Sound.ITEM_TRIDENT_THROW, 1.0f, savage ? 0.7f : 1.1f);
+
+        new BukkitRunnable() {
+            int t = 0;
+            @Override
+            public void run() {
+                if (!player.isOnline() || player.isDead()) { cancel(); return; }
+
+                player.setVelocity(vel);
+
+                Location at = player.getLocation().add(0, 1.0, 0);
+                player.getWorld().spawnParticle(Particle.SWEEP_ATTACK, at, 1);
+                player.getWorld().spawnParticle(savage ? Particle.FLAME : Particle.CRIT,
+                        at, savage ? 8 : 4, 0.3, 0.3, 0.3, 0.02);
+
+                for (Entity ent : player.getNearbyEntities(1.8, 1.5, 1.8)) {
+                    if (ent.equals(player)) continue;
+                    if (!(ent instanceof LivingEntity target)) continue;
+                    if (!hitOnce.add(ent.getUniqueId())) continue;
+
+                    target.damage(damage, player);
+                    Vector kb = vel.clone().multiply(0.4);
+                    kb.setY(0.25);
+                    target.setVelocity(kb);
+                    if (savage) target.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 60, 1));
+
+                    target.getWorld().playSound(target.getLocation(),
+                            Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1.0f, savage ? 0.7f : 1.0f);
+                }
+
+                t++;
+                if (t >= duration) cancel();
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    // ── 彈藥工具 ────────────────────────────────────────────────────────────────
+
+    private boolean hasAmmo(Player player, String id) {
+        for (ItemStack i : player.getInventory().getContents()) {
+            if (plugin.hasItemId(i, id)) return true;
+        }
+        return false;
+    }
+
+    private boolean consumeAmmo(Player player, String id) {
+        ItemStack[] contents = player.getInventory().getContents();
+        for (int i = 0; i < contents.length; i++) {
+            ItemStack it = contents[i];
+            if (!plugin.hasItemId(it, id)) continue;
+            if (it.getAmount() <= 1) contents[i] = null;
+            else it.setAmount(it.getAmount() - 1);
+            player.getInventory().setContents(contents);
+            return true;
+        }
+        return false;
+    }
+}
