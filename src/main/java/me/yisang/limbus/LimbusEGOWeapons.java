@@ -15,8 +15,6 @@ import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerResourcePackStatusEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
@@ -40,16 +38,47 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
 
     private static final String PACK_URL  = "https://github.com/EvansGoethe/Limbus-E.G.O-weapon-plugin-ResourcePack/releases/download/2.11/Limbus_E.G.O_Weapons_plugin_ResourcePack.v.2.11.zip";
     private static final String PACK_HASH = "8a3e5c98134e401fb180e36bb800c9e137b5f053";
-    private static final java.util.UUID PACK_UUID = java.util.UUID.nameUUIDFromBytes(
-            PACK_URL.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    private static final String PACK_FILENAME = "resourcepack.zip";
 
-    private static byte[] hexToBytes(String hex) {
-        byte[] data = new byte[hex.length() / 2];
-        for (int i = 0; i < data.length; i++) {
-            data[i] = (byte) ((Character.digit(hex.charAt(i * 2), 16) << 4)
-                             + Character.digit(hex.charAt(i * 2 + 1), 16));
+    /**
+     * 同步資源包到本插件 data folder（plugins/LimbusEGOWeapons/resourcepack.zip）。
+     * 已存在且 SHA-1 與 PACK_HASH 相符就跳過下載。
+     * 不主動推送給玩家——交由外部 ResourcePackManager 合併分發。
+     */
+    private void syncResourcePackToDataFolder() {
+        getDataFolder().mkdirs();
+        java.io.File dest = new java.io.File(getDataFolder(), PACK_FILENAME);
+        if (dest.isFile() && PACK_HASH.equalsIgnoreCase(sha1Of(dest))) {
+            getLogger().info("[ResourcePack] 已存在符合 hash 的本地檔，跳過下載。");
+            return;
         }
-        return data;
+        getLogger().info("[ResourcePack] 下載 " + PACK_URL + " → " + dest.getAbsolutePath());
+        try (java.io.InputStream in = java.net.URI.create(PACK_URL).toURL().openStream();
+             java.io.FileOutputStream out = new java.io.FileOutputStream(dest)) {
+            in.transferTo(out);
+            String got = sha1Of(dest);
+            if (!PACK_HASH.equalsIgnoreCase(got)) {
+                getLogger().warning("[ResourcePack] 下載完成但 hash 不符（預期 " + PACK_HASH + "，實際 " + got + "）。");
+            } else {
+                getLogger().info("[ResourcePack] 下載完成，hash 一致。");
+            }
+        } catch (Exception e) {
+            getLogger().severe("[ResourcePack] 下載失敗：" + e.getMessage());
+        }
+    }
+
+    private static String sha1Of(java.io.File file) {
+        try (java.io.InputStream in = new java.io.FileInputStream(file)) {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-1");
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = in.read(buf)) > 0) md.update(buf, 0, n);
+            StringBuilder sb = new StringBuilder();
+            for (byte b : md.digest()) sb.append(String.format("%02x", b));
+            return sb.toString();
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     // ── 公開工具方法 ────────────────────────────────────────────────────────────
@@ -93,6 +122,9 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
 
         getServer().getPluginManager().registerEvents(this, this);
 
+        // 同步資源包到本插件 data folder，供 ResourcePackManager 合併分發
+        getServer().getScheduler().runTaskAsynchronously(this, this::syncResourcePackToDataFolder);
+
         // 原版弓箭聲音攔截（需 ProtocolLib）
         if (getServer().getPluginManager().isPluginEnabled("ProtocolLib")) {
             try {
@@ -132,31 +164,6 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
                 }
             }
         }, 0L, 5L);
-    }
-
-    // ── 資源包推送 ───────────────────────────────────────────────────────────
-
-    @EventHandler
-    public void onJoin(PlayerJoinEvent event) {
-        Player player = event.getPlayer();
-        getLogger().info("[ResourcePack] Sending pack to " + player.getName());
-        try {
-            player.addResourcePack(PACK_UUID, PACK_URL, hexToBytes(PACK_HASH),
-                    "Receiving resource pack...", true);
-            getLogger().info("[ResourcePack] Sent successfully to " + player.getName());
-        } catch (Exception e) {
-            getLogger().severe("[ResourcePack] Failed to send: " + e.getMessage());
-        }
-    }
-
-    @EventHandler
-    public void onResourcePackStatus(PlayerResourcePackStatusEvent event) {
-        if (!PACK_UUID.equals(event.getID())) return;
-        getLogger().info("[ResourcePack] " + event.getPlayer().getName()
-                + " status: " + event.getStatus().name());
-        if (event.getStatus() == PlayerResourcePackStatusEvent.Status.DECLINED) {
-            event.getPlayer().kickPlayer("§c請接受資源包以加入伺服器。");
-        }
     }
 
     // ── 莊嚴哀悼射擊（弩兩段式：右鍵上弦 → 再右鍵發射）──
