@@ -244,14 +244,28 @@ public class TiantuiStar implements EGOWeapon, Listener {
             pack.setAmount(pack.getAmount() - 1);
         }
 
-        // 給予 1 刀 + 10 猛虎標彈 + 20 虎標彈
-        player.getInventory().addItem(
-                createItem(),
-                createSavageTigerMark(10),
-                createTigerMark(20));
+        // 先給彈藥（addItem 預設從 hotbar 0 開始找空位）
+        player.getInventory().addItem(createSavageTigerMark(10), createTigerMark(20));
 
-        player.getWorld().playSound(player.getLocation(),
-                org.bukkit.Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.7f, 1.2f);
+        // 刀放 storage（slot 9-35），避免進主手後立刻觸發蓄力；storage 滿才退而求其次
+        org.bukkit.inventory.PlayerInventory inv = player.getInventory();
+        int swordSlot = -1;
+        for (int i = 9; i < 36; i++) {
+            ItemStack s = inv.getItem(i);
+            if (s == null || s.getType().isAir()) { swordSlot = i; break; }
+        }
+        if (swordSlot < 0) {
+            int held = inv.getHeldItemSlot();
+            for (int i = 0; i < 9; i++) {
+                if (i == held) continue;
+                ItemStack s = inv.getItem(i);
+                if (s == null || s.getType().isAir()) { swordSlot = i; break; }
+            }
+        }
+        if (swordSlot >= 0) inv.setItem(swordSlot, createItem());
+        else player.getWorld().dropItemNaturally(player.getLocation(), createItem());
+
+        // 無聲開啟，保留粒子提示
         player.getWorld().spawnParticle(org.bukkit.Particle.END_ROD,
                 player.getLocation().add(0, 1.0, 0), 16, 0.4, 0.4, 0.4, 0.02);
         player.sendActionBar(plugin.translateHexColorCodes(
@@ -335,6 +349,8 @@ public class TiantuiStar implements EGOWeapon, Listener {
                     Vector kb = vel.clone().multiply(0.4);
                     kb.setY(0.25);
                     target.setVelocity(kb);
+                    // 燃燒效果：普通 3 秒、猛擊 5 秒
+                    target.setFireTicks(Math.max(target.getFireTicks(), savage ? 100 : 60));
                     if (savage) target.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 60, 1));
 
                     target.getWorld().playSound(target.getLocation(),
