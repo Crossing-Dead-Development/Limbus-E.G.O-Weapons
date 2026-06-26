@@ -1,0 +1,40 @@
+{
+  "tiantui.slash": {
+    "category": "player",
+    "sounds": [
+      "tiantui_star:item/tiantui/slash1",
+      "tiantui_star:item/tiantui/slash2",
+      "tiantui_star:item/tiantui/slash3"
+    ]
+  },
+  "tiantui.charge_tiger": {
+    "category": "player",
+    "sounds": [
+      "tiantui_star:item/tiantui/charge_tiger"
+    ]
+  },
+  "tiantui.charge_savage_1": {
+    "category": "player",
+    "sounds": [
+      "tiantui_star:item/tiantui/charge_savage_1"
+    ]
+  },
+  "tiantui.charge_savage_2": {
+    "category": "player",
+    "sounds": [
+      "tiantui_star:item/tiantui/charge_savage_2"
+    ]
+  },
+  "tiantui.charge_savage_3": {
+    "category": "player",
+    "sounds": [
+      "tiantui_star:item/tiantui/charge_savage_3"
+    ]
+  },
+  "tiantui.dash": {
+    "category": "player",
+    "sounds": [
+      "tiantui_star:item/tiantui/dash"
+    ]
+  }
+}

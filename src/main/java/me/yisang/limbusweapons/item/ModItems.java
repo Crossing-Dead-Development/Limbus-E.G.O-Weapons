@@ -18,6 +18,7 @@ import net.minecraft.util.Rarity;
 
 public class ModItems {
 
+    public static Item MOD_ICON;
     public static Item SOLEMN_LAMENT_BLACK;
     public static Item SOLEMN_LAMENT_WHITE;
     public static Item BUTTERFLY_QUARTZ;
@@ -25,8 +26,16 @@ public class ModItems {
     public static Item MIMICRY;
     public static Item DACAPO;
     public static Item RING_BRUSH;
+    public static Item TIANTUI_STAR;
+    public static Item TIGER_MARK;
+    public static Item SAVAGE_TIGER_MARK;
+    public static Item CHATUHU;
+    public static Item TWILIGHT;
+    public static Item APOCALYPSE_BIRD;
 
     public static void register() {
+        MOD_ICON = reg("mod_icon", new Item(key("mod_icon")));
+
         SOLEMN_LAMENT_BLACK = reg("solemn_lament_black",
                 new SolemnLamentItem(true,
                         key("solemn_lament_black").maxCount(1).rarity(Rarity.EPIC)));
@@ -61,6 +70,30 @@ public class ModItems {
                                 .component(DataComponentTypes.ATTRIBUTE_MODIFIERS,
                                         weaponModifiers("ring_brush", 8.0, -2.4))));
 
+        TIANTUI_STAR = reg("tiantui_star",
+                new TiantuiStarItem(
+                        key("tiantui_star").maxCount(1).rarity(Rarity.EPIC)
+                                .component(DataComponentTypes.ATTRIBUTE_MODIFIERS,
+                                        weaponModifiers("tiantui_star", 8.0, -2.4))));
+
+        TIGER_MARK = reg("tiger_mark",
+                new Item(key("tiger_mark").maxCount(64).rarity(Rarity.UNCOMMON)));
+
+        SAVAGE_TIGER_MARK = reg("savage_tiger_mark",
+                new Item(key("savage_tiger_mark").maxCount(64).rarity(Rarity.RARE)));
+
+        CHATUHU = reg("chatuhu",
+                new ChatuhuPackItem(key("chatuhu").maxCount(16).rarity(Rarity.EPIC)));
+
+        TWILIGHT = reg("twilight",
+                new TwilightItem(
+                        key("twilight").maxCount(1).rarity(Rarity.EPIC)
+                                .component(DataComponentTypes.ATTRIBUTE_MODIFIERS,
+                                        twilightModifiers())));
+
+        APOCALYPSE_BIRD = reg("apocalypse_bird",
+                new ApocalypseBirdPackItem(key("apocalypse_bird").maxCount(16).rarity(Rarity.EPIC)));
+
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.COMBAT).register(e -> {
             e.add(SOLEMN_LAMENT_BLACK);
             e.add(SOLEMN_LAMENT_WHITE);
@@ -69,7 +102,34 @@ public class ModItems {
             e.add(MIMICRY);
             e.add(DACAPO);
             e.add(RING_BRUSH);
+            e.add(TIANTUI_STAR);
+            e.add(TIGER_MARK);
+            e.add(SAVAGE_TIGER_MARK);
+            e.add(CHATUHU);
+            e.add(TWILIGHT);
+            e.add(APOCALYPSE_BIRD);
         });
+    }
+
+    /** 薄暝：攻擊+9、攻速-2.4，並加大實體互動距離 +1.5。 */
+    private static AttributeModifiersComponent twilightModifiers() {
+        return AttributeModifiersComponent.builder()
+                .add(EntityAttributes.ATTACK_DAMAGE,
+                        new EntityAttributeModifier(
+                                Identifier.of(LimbusWeaponsMod.MOD_ID, "twilight_damage"),
+                                9.0, EntityAttributeModifier.Operation.ADD_VALUE),
+                        AttributeModifierSlot.MAINHAND)
+                .add(EntityAttributes.ATTACK_SPEED,
+                        new EntityAttributeModifier(
+                                Identifier.of(LimbusWeaponsMod.MOD_ID, "twilight_speed"),
+                                -2.4, EntityAttributeModifier.Operation.ADD_VALUE),
+                        AttributeModifierSlot.MAINHAND)
+                .add(EntityAttributes.ENTITY_INTERACTION_RANGE,
+                        new EntityAttributeModifier(
+                                Identifier.of(LimbusWeaponsMod.MOD_ID, "twilight_reach"),
+                                1.5, EntityAttributeModifier.Operation.ADD_VALUE),
+                        AttributeModifierSlot.MAINHAND)
+                .build();
     }
 
     private static Item.Settings key(String name) {

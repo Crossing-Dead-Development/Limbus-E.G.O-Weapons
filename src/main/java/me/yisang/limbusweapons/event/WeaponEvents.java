@@ -77,6 +77,17 @@ public class WeaponEvents {
             return ActionResult.FAIL;
         }
 
+        if (stack.getItem() instanceof me.yisang.limbusweapons.item.TwilightItem) {
+            handleTwilight(player, sw, target);
+            return ActionResult.FAIL;
+        }
+
+        if (stack.getItem() instanceof me.yisang.limbusweapons.item.TiantuiStarItem) {
+            sw.playSound(null, target.getBlockPos(), ModSounds.TIANTUI_SLASH,
+                    SoundCategory.PLAYERS, 1.0f, 1.0f);
+            return ActionResult.PASS;
+        }
+
         return ActionResult.PASS;
     }
 
@@ -206,48 +217,26 @@ public class WeaponEvents {
                 target.getX(), target.getY() + 1, target.getZ(), 20, 0.3, 0.3, 0.3, 0);
     }
 
-    // ── 莊嚴哀悼：射擊 ───────────────────────────────────────────────────────
+    // ── 莊嚴哀悼：開始蓄力（播放裝填音效） ─────────────────────────────────
 
-    public static boolean handleSolemnLamentUse(PlayerEntity player, ServerWorld world, SolemnLamentItem weapon) {
-        long now = System.currentTimeMillis();
-        if (now - solemnCooldowns.getOrDefault(player.getUuid(), 0L) < 1200) return false;
-
-        ItemStack ammo = findButterfly(player);
-        if (ammo == null) return false;
-
-        solemnCooldowns.put(player.getUuid(), now);
-
+    public static void onSolemnLamentDraw(PlayerEntity player, World world) {
         world.playSound(null, player.getBlockPos(), ModSounds.SOLEMN_LOAD,
                 SoundCategory.PLAYERS, 0.6f, 1.0f);
-
-        int shootTick = world.getServer().getTicks() + 20;
-        boolean isBlack = weapon.isBlack;
-
-        scheduledShoots.add(new ScheduledShoot(shootTick, player, world.getRegistryKey(), isBlack));
-        return true;
     }
 
-    private record ScheduledShoot(int executeTick, PlayerEntity player,
-                                   net.minecraft.registry.RegistryKey<World> worldKey, boolean isBlack) {}
-    private static final List<ScheduledShoot> scheduledShoots = Collections.synchronizedList(new ArrayList<>());
+    // ── 莊嚴哀悼：放開後射擊 ─────────────────────────────────────────────────
 
-    private static void processScheduledShoots(MinecraftServer server) {
-        int tick = server.getTicks();
-        scheduledShoots.removeIf(s -> {
-            if (s.executeTick() > tick) return false;
+    public static void handleSolemnLamentFire(PlayerEntity player, ServerWorld world, SolemnLamentItem weapon) {
+        long now = System.currentTimeMillis();
+        if (now - solemnCooldowns.getOrDefault(player.getUuid(), 0L) < 1200) return;
 
-            ServerWorld sw = server.getWorld(s.worldKey());
-            if (sw == null) return true;
-            PlayerEntity p = s.player();
+        ItemStack ammo = findButterfly(player);
+        if (!player.getAbilities().creativeMode && ammo == null) return;
 
-            if (!(p.getMainHandStack().getItem() instanceof SolemnLamentItem)) return true;
-            ItemStack ammo = findButterfly(p);
-            if (ammo == null) return true;
+        solemnCooldowns.put(player.getUuid(), now);
+        if (ammo != null) ammo.decrement(1);
 
-            ammo.decrement(1);
-            spawnSolemnProjectile(p, sw, s.isBlack());
-            return true;
-        });
+        spawnSolemnProjectile(player, world, weapon.isBlack);
     }
 
     private static void spawnSolemnProjectile(PlayerEntity player, ServerWorld world, boolean isBlack) {
@@ -349,16 +338,216 @@ public class WeaponEvents {
     private static void onServerTick(MinecraftServer server) {
         tickShieldAura(server);
         processDaCapo(server);
-        processScheduledShoots(server);
         tickProjectiles(server);
+        tickTiantuiDashes(server);
     }
 
     // ── 輔助 ─────────────────────────────────────────────────────────────────
 
-    private static ItemStack findButterfly(PlayerEntity player) {
+    public static ItemStack findButterfly(PlayerEntity player) {
         for (ItemStack s : player.getInventory().main) {
             if (s.getItem() == ModItems.BUTTERFLY_QUARTZ) return s;
         }
         return null;
+    }
+
+    // ── 天退星刀 ──────────────────────────────────────────────────────────────
+
+    private static final Map<UUID, Boolean> tiantuiSavage = new HashMap<>();
+    private record DashData(UUID ownerId, Vec3d vel, boolean savage, Set<UUID> hit, int[] ticks) {}
+    private static final List<DashData> activeDashes = Collections.synchronizedList(new ArrayList<>());
+
+    public static boolean hasTigerMark(PlayerEntity p) { return findItem(p, ModItems.TIGER_MARK) != null; }
+    public static boolean hasSavageTigerMark(PlayerEntity p) { return findItem(p, ModItems.SAVAGE_TIGER_MARK) != null; }
+    public static boolean isTiantuiSavage(PlayerEntity p) { return tiantuiSavage.getOrDefault(p.getUuid(), false); }
+
+    public static void startTiantuiCharge(PlayerEntity player, World world, boolean savage) {
+        tiantuiSavage.put(player.getUuid(), savage);
+        world.playSound(null, player.getBlockPos(),
+                savage ? ModSounds.TIANTUI_CHARGE_SAV_1 : ModSounds.TIANTUI_CHARGE_TIGER,
+                SoundCategory.PLAYERS, 0.9f, 1.0f);
+    }
+
+    public static void cancelTiantuiCharge(PlayerEntity player) {
+        tiantuiSavage.remove(player.getUuid());
+    }
+
+    public static void tiantuiChargeTick(PlayerEntity player, ServerWorld sw, boolean savage, int drawTicks) {
+        if (savage) {
+            if (drawTicks == 20) sw.playSound(null, player.getBlockPos(), ModSounds.TIANTUI_CHARGE_SAV_2, SoundCategory.PLAYERS, 0.9f, 1.0f);
+            else if (drawTicks == 35) sw.playSound(null, player.getBlockPos(), ModSounds.TIANTUI_CHARGE_SAV_3, SoundCategory.PLAYERS, 0.9f, 1.0f);
+        }
+        sw.spawnParticles(savage ? ParticleTypes.FLAME : ParticleTypes.CRIT,
+                player.getX(), player.getY() + 1.0, player.getZ(), savage ? 6 : 3, 0.4, 0.4, 0.4, 0.01);
+    }
+
+    public static void fireTiantuiDash(PlayerEntity player, ServerWorld sw, boolean savage) {
+        ItemStack ammo = findItem(player, savage ? ModItems.SAVAGE_TIGER_MARK : ModItems.TIGER_MARK);
+        if (ammo == null && !player.getAbilities().creativeMode) { cancelTiantuiCharge(player); return; }
+        if (ammo != null) ammo.decrement(1);
+        cancelTiantuiCharge(player);
+
+        Vec3d dir = player.getRotationVector();
+        dir = new Vec3d(dir.x, 0, dir.z);
+        if (dir.lengthSquared() < 1.0e-6) dir = new Vec3d(0, 0, 1);
+        dir = dir.normalize().multiply(savage ? 1.85 : 1.2);
+
+        activeDashes.add(new DashData(player.getUuid(), dir, savage,
+                Collections.synchronizedSet(new HashSet<>()), new int[]{ savage ? 10 : 8 }));
+
+        sw.playSound(null, player.getBlockPos(), ModSounds.TIANTUI_DASH, SoundCategory.PLAYERS, 1.0f, savage ? 0.85f : 1.0f);
+    }
+
+    private static void tickTiantuiDashes(MinecraftServer server) {
+        activeDashes.removeIf(d -> {
+            ServerWorld sw = null;
+            PlayerEntity player = null;
+            for (ServerWorld w : server.getWorlds()) {
+                PlayerEntity p = w.getPlayerByUuid(d.ownerId());
+                if (p != null) { sw = w; player = p; break; }
+            }
+            if (player == null) return true;
+
+            player.setVelocity(d.vel());
+            player.velocityModified = true;
+
+            double dmg = d.savage() ? 18.0 : 8.0;
+            sw.spawnParticles(ParticleTypes.SWEEP_ATTACK, player.getX(), player.getY() + 1.0, player.getZ(), 1, 0, 0, 0, 0);
+            sw.spawnParticles(d.savage() ? ParticleTypes.FLAME : ParticleTypes.CRIT,
+                    player.getX(), player.getY() + 1.0, player.getZ(), d.savage() ? 8 : 4, 0.3, 0.3, 0.3, 0.02);
+
+            for (Entity e : sw.getOtherEntities(player, player.getBoundingBox().expand(1.4))) {
+                if (!(e instanceof LivingEntity target)) continue;
+                if (!d.hit().add(e.getUuid())) continue;
+                target.damage(sw, sw.getDamageSources().playerAttack(player), (float) dmg);
+                target.setVelocity(d.vel().multiply(0.4).add(0, 0.25, 0));
+                target.velocityModified = true;
+                target.setOnFireForTicks(d.savage() ? 100 : 60);
+                if (d.savage()) target.addStatusEffect(new StatusEffectInstance(StatusEffects.WITHER, 60, 1));
+            }
+
+            d.ticks()[0]--;
+            return d.ticks()[0] <= 0;
+        });
+    }
+
+    // ── 插翅虎 / 終末鳥 開啟 ──────────────────────────────────────────────────
+
+    public static void openChatuhuPack(PlayerEntity player, ServerWorld sw, ItemStack pack) {
+        if (countFreeSlots(player) < 4) return;
+        pack.decrement(1);
+        player.giveItemStack(new ItemStack(ModItems.TIANTUI_STAR));
+        player.giveItemStack(new ItemStack(ModItems.SAVAGE_TIGER_MARK, 10));
+        player.giveItemStack(new ItemStack(ModItems.TIGER_MARK, 20));
+        sw.spawnParticles(ParticleTypes.END_ROD, player.getX(), player.getY() + 1.0, player.getZ(), 16, 0.4, 0.4, 0.4, 0.02);
+    }
+
+    public static void openApocalypseBirdPack(PlayerEntity player, ServerWorld sw, ItemStack pack) {
+        if (countFreeSlots(player) < 1) return;
+        pack.decrement(1);
+        player.giveItemStack(new ItemStack(ModItems.TWILIGHT));
+        sw.spawnParticles(ParticleTypes.WHITE_ASH, player.getX(), player.getY() + 1.0, player.getZ(), 24, 0.5, 0.6, 0.5, 0.02);
+    }
+
+    // ── 薄暝 ──────────────────────────────────────────────────────────────────
+
+    private static final Map<UUID, Long> twilightCd = new HashMap<>();
+
+    public static boolean twilightSpecialReady(PlayerEntity p) {
+        return System.currentTimeMillis() >= twilightCd.getOrDefault(p.getUuid(), 0L);
+    }
+
+    public static void twilightChargeStart(PlayerEntity player, ServerWorld sw) {
+        twilightCd.put(player.getUuid(), System.currentTimeMillis() + 6000L + 30 * 50L);
+    }
+
+    public static void twilightChargeTick(PlayerEntity player, ServerWorld sw) {
+        sw.spawnParticles(ParticleTypes.WHITE_ASH, player.getX(), player.getY() + 1.0, player.getZ(), 6, 0.5, 0.5, 0.5, 0.01);
+        sw.spawnParticles(new DustParticleEffect(0x6C5B9E, 1.2f), player.getX(), player.getY() + 1.0, player.getZ(), 4, 0.4, 0.4, 0.4, 0);
+    }
+
+    private static double lowHpMult(PlayerEntity p) {
+        double max = p.getMaxHealth();
+        double frac = Math.max(0.0, Math.min(1.0, p.getHealth() / max));
+        return 1.0 + 1.5 * (1.0 - frac);
+    }
+
+    private static void handleTwilight(PlayerEntity player, ServerWorld sw, LivingEntity target) {
+        double mult = lowHpMult(player);
+        double base = player.getAttributeValue(net.minecraft.entity.attribute.EntityAttributes.ATTACK_DAMAGE);
+        double total = base * mult;
+        target.damage(sw, sw.getDamageSources().playerAttack(player), (float) (total * 0.70));
+        dealTrueDamage(target, total * 0.30);
+        sw.spawnParticles(ParticleTypes.WHITE_ASH, target.getX(), target.getY() + 1.0, target.getZ(), 8, 0.3, 0.4, 0.3, 0.01);
+    }
+
+    public static void twilightSlash(PlayerEntity player, ServerWorld sw) {
+        double mult = lowHpMult(player);
+        double dmg = 14.0 * mult;
+        double range = 6.0;
+        Vec3d look = player.getRotationVector();
+        look = new Vec3d(look.x, 0, look.z);
+        if (look.lengthSquared() < 1.0e-6) look = new Vec3d(0, 0, 1);
+        look = look.normalize();
+
+        sw.playSound(null, player.getBlockPos(),
+                net.minecraft.registry.Registries.SOUND_EVENT.get(net.minecraft.util.Identifier.of("entity.player.attack.sweep")),
+                SoundCategory.PLAYERS, 1.2f, 0.6f);
+
+        Vec3d eye = player.getEyePos();
+        for (double d = 1.0; d <= range; d += 0.7) {
+            for (double deg = -50; deg <= 50; deg += 12) {
+                Vec3d v = rotateY(look, Math.toRadians(deg)).multiply(d);
+                sw.spawnParticles(ParticleTypes.WHITE_ASH, eye.x + v.x, eye.y + v.y, eye.z + v.z, 1, 0, 0, 0, 0);
+                sw.spawnParticles(new DustParticleEffect(0x6C5B9E, 1.4f), eye.x + v.x, eye.y + v.y, eye.z + v.z, 1, 0, 0, 0, 0);
+            }
+        }
+
+        for (Entity e : sw.getOtherEntities(player, player.getBoundingBox().expand(range))) {
+            if (!(e instanceof LivingEntity target)) continue;
+            Vec3d to = target.getPos().subtract(player.getPos());
+            to = new Vec3d(to.x, 0, to.z);
+            if (to.lengthSquared() < 1.0e-6) continue;
+            double angle = Math.acos(Math.max(-1, Math.min(1, look.dotProduct(to.normalize()))));
+            if (angle > Math.toRadians(55)) continue;
+            target.damage(sw, sw.getDamageSources().playerAttack(player), (float) (dmg * 0.70));
+            dealTrueDamage(target, dmg * 0.30);
+            target.addStatusEffect(new StatusEffectInstance(StatusEffects.WITHER, 80, 1));
+        }
+    }
+
+    /** 真實傷害：先扣吸收再扣生命，無視盔甲與抗性。 */
+    private static void dealTrueDamage(LivingEntity target, double dmg) {
+        if (dmg <= 0 || !target.isAlive()) return;
+        float absorb = target.getAbsorptionAmount();
+        if (absorb > 0) {
+            float used = (float) Math.min(absorb, dmg);
+            target.setAbsorptionAmount(absorb - used);
+            dmg -= used;
+        }
+        if (dmg <= 0) return;
+        target.setHealth((float) Math.max(0.0, target.getHealth() - dmg));
+    }
+
+    // ── 共用工具 ──────────────────────────────────────────────────────────────
+
+    private static ItemStack findItem(PlayerEntity player, net.minecraft.item.Item item) {
+        for (ItemStack s : player.getInventory().main) {
+            if (s.getItem() == item) return s;
+        }
+        return null;
+    }
+
+    private static int countFreeSlots(PlayerEntity player) {
+        int free = 0;
+        for (ItemStack s : player.getInventory().main) {
+            if (s.isEmpty()) free++;
+        }
+        return free;
+    }
+
+    private static Vec3d rotateY(Vec3d v, double rad) {
+        double cos = Math.cos(rad), sin = Math.sin(rad);
+        return new Vec3d(v.x * cos + v.z * sin, v.y, -v.x * sin + v.z * cos);
     }
 }
