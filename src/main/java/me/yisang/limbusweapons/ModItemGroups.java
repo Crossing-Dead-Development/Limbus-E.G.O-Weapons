@@ -31,6 +31,12 @@ public class ModItemGroups {
                             entries.add(ModItems.MIMICRY);
                             entries.add(ModItems.DACAPO);
                             entries.add(ModItems.RING_BRUSH);
+                            entries.add(ModItems.TIANTUI_STAR);
+                            entries.add(ModItems.TIGER_MARK);
+                            entries.add(ModItems.SAVAGE_TIGER_MARK);
+                            entries.add(ModItems.CHATUHU);
+                            entries.add(ModItems.TWILIGHT);
+                            entries.add(ModItems.APOCALYPSE_BIRD);
                         })
                         .build()
         );
