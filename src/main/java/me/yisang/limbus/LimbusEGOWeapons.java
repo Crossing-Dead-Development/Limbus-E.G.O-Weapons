@@ -34,10 +34,11 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
     private final Map<UUID, Long> solemnCooldowns = new HashMap<>();
     private solemnlament solemn;
     private TiantuiStar tiantui;
+    private TwilightWeapon twilight;
     private SoundSuppressor soundSuppressor;
 
-    private static final String PACK_URL  = "https://github.com/EvansGoethe/Limbus-E.G.O-weapon-plugin-ResourcePack/releases/download/2.11/Limbus_E.G.O_Weapons_plugin_ResourcePack.v.2.11.zip";
-    private static final String PACK_HASH = "8a3e5c98134e401fb180e36bb800c9e137b5f053";
+    private static final String PACK_URL  = "https://github.com/EvansGoethe/Limbus-E.G.O-weapon-plugin-ResourcePack/releases/download/2.12/Limbus_E.G.O_Weapons_plugin_ResourcePack.v.2.12.zip";
+    private static final String PACK_HASH = "89494b914893cfbb89f99d3c8d3ea0ffcbb40fba";
     private static final String PACK_FILENAME = "resourcepack.zip";
 
     /**
@@ -86,6 +87,7 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
     public NamespacedKey getItemIdKey() { return ITEM_ID_KEY; }
     public solemnlament getSolemn() { return solemn; }
     public TiantuiStar getTiantui() { return tiantui; }
+    public TwilightWeapon getTwilight() { return twilight; }
     public EGOWeapon getWeaponModule(String id) { return weaponModules.get(id); }
 
     public boolean hasItemId(ItemStack item, String id) {
@@ -107,16 +109,19 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
         dacapo     d  = new dacapo(this);
         ringbrush  r  = new ringbrush(this);
         this.tiantui = new TiantuiStar(this);
+        this.twilight = new TwilightWeapon(this);
 
         weaponModules.put("mimicry", m);
         weaponModules.put("dacapo",  d);
         weaponModules.put("brush",   r);
         weaponModules.put("tiantui", tiantui);
+        weaponModules.put("twilight", twilight);
 
         registerModule(m);
         registerModule(d);
         registerModule(r);
         registerModule(tiantui);
+        registerModule(twilight);
 
         startShieldTick();
 
@@ -347,7 +352,7 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
         if (args.length == 1) {
             List<String> completions = new ArrayList<>(
                     List.of("brush", "black", "white", "butterflies", "shield", "mimicry", "dacapo",
-                            "tiantui", "tiger_mark", "savage_tiger_mark", "chatuhu", "admin"));
+                            "tiantui", "tiger_mark", "savage_tiger_mark", "chatuhu", "twilight", "admin"));
             return completions.stream().filter(s -> s.startsWith(args[0].toLowerCase())).toList();
         }
         return Collections.emptyList();
