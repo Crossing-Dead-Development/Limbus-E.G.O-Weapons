@@ -17,6 +17,7 @@ import org.bukkit.inventory.EquipmentSlotGroup;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -338,6 +339,7 @@ public class TiantuiStar implements EGOWeapon, Listener {
         final double damage = savage ? 18.0 : 8.0;
         final Vector vel = dir.clone().multiply(speed);
         final Set<UUID> hitOnce = new HashSet<>();
+        final boolean[] firstSlash = {false};
 
         player.getWorld().playSound(player.getLocation(),
                 "tiantui_star:tiantui.dash", 1.0f, savage ? 0.85f : 1.0f);
@@ -360,7 +362,22 @@ public class TiantuiStar implements EGOWeapon, Listener {
                     if (!(ent instanceof LivingEntity target)) continue;
                     if (!hitOnce.add(ent.getUniqueId())) continue;
 
-                    target.damage(damage, player);
+                    // 第一個碰到的目標：先全力揮砍（玩家劈砍行為，含暴擊/橫掃/附魔）
+                    if (!firstSlash[0]) {
+                        firstSlash[0] = true;
+                        player.attack(target);
+                        target.setNoDamageTicks(0); // 解除無敵幀以套用衝刺傷害
+                    }
+
+                    // 衝刺傷害（metadata 防止再觸發近戰邏輯）
+                    player.setMetadata("lsmp_custom_damage", new FixedMetadataValue(plugin, true));
+                    try {
+                        target.damage(damage, player);
+                        target.setNoDamageTicks(0);
+                    } finally {
+                        player.removeMetadata("lsmp_custom_damage", plugin);
+                    }
+
                     Vector kb = vel.clone().multiply(0.4);
                     kb.setY(0.25);
                     target.setVelocity(kb);

@@ -61,12 +61,12 @@ public class dacapo implements EGOWeapon, Listener {
                         return;
                     }
 
-                    playNote(attacker, target, special ? 17.0 : 4.0, special);
+                    playNote(attacker, target, special ? 12.0 : 3.0, special);
 
                     target.getNearbyEntities(3.5, 3.5, 3.5).forEach(e -> {
                         if (e instanceof LivingEntity v && !e.equals(attacker) && !e.equals(target)) {
                             if (!(e instanceof Player) && !(e instanceof Tameable t && t.isTamed())) {
-                                playNote(attacker, v, (special ? 17.0 : 4.0) * 0.7, special);
+                                playNote(attacker, v, (special ? 12.0 : 3.0) * 0.7, special);
                             }
                         }
                     });
@@ -76,6 +76,16 @@ public class dacapo implements EGOWeapon, Listener {
         }
     }
 
+    // 旋律性音符盒樂器
+    private static final String[] NOTE_INSTRUMENTS = {
+            "block.note_block.harp", "block.note_block.bass", "block.note_block.bell",
+            "block.note_block.chime", "block.note_block.flute", "block.note_block.guitar",
+            "block.note_block.pling", "block.note_block.xylophone", "block.note_block.iron_xylophone",
+            "block.note_block.banjo", "block.note_block.bit", "block.note_block.cow_bell",
+            "block.note_block.didgeridoo",
+    };
+    private final java.util.Random noteRng = new java.util.Random();
+
     private void playNote(Player p, LivingEntity v, double d, boolean s) {
         p.setMetadata("lsmp_custom_damage", new FixedMetadataValue(plugin, true));
         try {
@@ -83,8 +93,10 @@ public class dacapo implements EGOWeapon, Listener {
             v.setNoDamageTicks(0);
             v.getWorld().spawnParticle(Particle.DUST, v.getLocation().add(0, 1, 0), 15,
                     new Particle.DustOptions(s ? Color.WHITE : Color.GRAY, 1.2f));
-            v.getWorld().playSound(v.getLocation(),
-                    s ? "block.anvil.place" : "block.note_block.harp", 0.8f, 1.5f);
+            // 隨機音符盒樂器 + 隨機音高（note 0~24）
+            String inst = NOTE_INSTRUMENTS[noteRng.nextInt(NOTE_INSTRUMENTS.length)];
+            float pitch = (float) Math.pow(2.0, (noteRng.nextInt(25) - 12) / 12.0);
+            v.getWorld().playSound(v.getLocation(), inst, 0.8f, pitch);
         } finally {
             p.removeMetadata("lsmp_custom_damage", plugin);
         }
