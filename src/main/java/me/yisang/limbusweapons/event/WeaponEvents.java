@@ -46,6 +46,14 @@ public class WeaponEvents {
 
     private static final Set<UUID> processingDaCapo = Collections.synchronizedSet(new HashSet<>());
 
+    private static final String[] DACAPO_NOTES = {
+            "block.note_block.harp", "block.note_block.bass", "block.note_block.bell",
+            "block.note_block.chime", "block.note_block.flute", "block.note_block.guitar",
+            "block.note_block.pling", "block.note_block.xylophone", "block.note_block.iron_xylophone",
+            "block.note_block.banjo", "block.note_block.bit", "block.note_block.cow_bell",
+            "block.note_block.didgeridoo",
+    };
+
     private static int shieldTick = 0;
 
     // ── 注冊入口 ──────────────────────────────────────────────────────────────
@@ -113,7 +121,7 @@ public class WeaponEvents {
     private static void handleDaCapo(PlayerEntity player, ServerWorld world, LivingEntity target) {
         boolean special = world.random.nextFloat() < 0.40f;
         int hitCount    = special ? 3 : 5;
-        float damage    = special ? 17.0f : 4.0f;
+        float damage    = special ? 12.0f : 3.0f;
         int interval    = special ? 4 : 2;
         int currentTick = world.getServer().getTicks();
 
@@ -155,11 +163,13 @@ public class WeaponEvents {
                 sw.spawnParticles(new DustParticleEffect(color, 1.2f),
                         tg.getX(), tg.getY() + 1, tg.getZ(), 15, 0.3, 0.3, 0.3, 0);
 
-                String sound = hit.special() ? "block.anvil.place" : "block.note_block.harp";
+                // 隨機音符盒樂器 + 隨機音高（note 0~24）
+                String inst = DACAPO_NOTES[sw.random.nextInt(DACAPO_NOTES.length)];
+                float pitch = (float) Math.pow(2.0, (sw.random.nextInt(25) - 12) / 12.0);
                 sw.playSound(null, tg.getBlockPos(),
                         net.minecraft.registry.Registries.SOUND_EVENT.get(
-                                net.minecraft.util.Identifier.of(sound)),
-                        SoundCategory.PLAYERS, 0.8f, 1.5f);
+                                net.minecraft.util.Identifier.of(inst)),
+                        SoundCategory.PLAYERS, 0.8f, pitch);
             } finally {
                 processingDaCapo.remove(p.getUuid());
             }
@@ -359,7 +369,7 @@ public class WeaponEvents {
     // ── 天退星刀 ──────────────────────────────────────────────────────────────
 
     private static final Map<UUID, Boolean> tiantuiSavage = new HashMap<>();
-    private record DashData(UUID ownerId, Vec3d vel, boolean savage, Set<UUID> hit, int[] ticks) {}
+    private record DashData(UUID ownerId, Vec3d vel, boolean savage, Set<UUID> hit, int[] ticks, boolean[] firstSlash) {}
     private static final List<DashData> activeDashes = Collections.synchronizedList(new ArrayList<>());
 
     public static boolean hasTigerMark(PlayerEntity p) { return findItem(p, ModItems.TIGER_MARK) != null; }
@@ -398,7 +408,7 @@ public class WeaponEvents {
         dir = dir.normalize().multiply(savage ? 1.85 : 1.2);
 
         activeDashes.add(new DashData(player.getUuid(), dir, savage,
-                Collections.synchronizedSet(new HashSet<>()), new int[]{ savage ? 10 : 8 }));
+                Collections.synchronizedSet(new HashSet<>()), new int[]{ savage ? 10 : 8 }, new boolean[]{false}));
 
         sw.playSound(null, player.getBlockPos(), ModSounds.TIANTUI_DASH, SoundCategory.PLAYERS, 1.0f, savage ? 0.85f : 1.0f);
     }
@@ -424,7 +434,17 @@ public class WeaponEvents {
             for (Entity e : sw.getOtherEntities(player, player.getBoundingBox().expand(1.4))) {
                 if (!(e instanceof LivingEntity target)) continue;
                 if (!d.hit().add(e.getUuid())) continue;
+
+                // 第一個碰到的目標：先全力揮砍（玩家劈砍行為）
+                if (!d.firstSlash()[0]) {
+                    d.firstSlash()[0] = true;
+                    player.attack(target);
+                    target.hurtTime = 0;
+                    target.timeUntilRegen = 0;
+                }
+
                 target.damage(sw, sw.getDamageSources().playerAttack(player), (float) dmg);
+                target.hurtTime = 0;
                 target.setVelocity(d.vel().multiply(0.4).add(0, 0.25, 0));
                 target.velocityModified = true;
                 target.setOnFireForTicks(d.savage() ? 100 : 60);
