@@ -298,6 +298,17 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
         }
     }
 
+    @EventHandler
+    public void onCatalogGUIClick(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) return;
+        if (!(event.getInventory().getHolder() instanceof WeaponCatalogGUI gui)) return;
+        event.setCancelled(true); // 唯讀
+        int slot = event.getRawSlot();
+        if (gui.isCloseSlot(slot)) { player.closeInventory(); return; }
+        int tab = gui.getTabForSlot(slot);
+        if (tab >= 0 && tab != gui.getCurrentTab()) gui.switchTab(player, tab);
+    }
+
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         if (args.length == 0) return true;
@@ -335,6 +346,12 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
             player.openInventory(new WeaponAdminGUI(this).getInventory());
             return true;
         }
+        if ("catalog".equals(first)) {
+            player.openInventory(new WeaponCatalogGUI(this, WeaponCatalogGUI.TAB_ALL).getInventory());
+            return true;
+        }
+        // 其餘子指令（直接給玩家自己物品）需要管理權限
+        if (!player.hasPermission("limbus.admin") && !player.isOp()) return true;
         if ("tiger_mark".equals(first)) {
             player.getInventory().addItem(tiantui.createTigerMark(1));
         } else if ("savage_tiger_mark".equals(first)) {
@@ -357,7 +374,7 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
             List<String> completions = new ArrayList<>(
                     List.of("brush", "black", "white", "butterflies", "shield", "mimicry", "dacapo",
                             "tiantui", "tiger_mark", "savage_tiger_mark", "chatuhu", "twilight",
-                            "apocalypse_bird", "admin"));
+                            "apocalypse_bird", "admin", "catalog"));
             return completions.stream().filter(s -> s.startsWith(args[0].toLowerCase())).toList();
         }
         return Collections.emptyList();
