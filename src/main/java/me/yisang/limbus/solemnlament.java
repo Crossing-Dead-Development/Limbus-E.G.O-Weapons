@@ -212,6 +212,7 @@ public class solemnlament {
         if (meta != null) {
             meta.addEnchant(org.bukkit.enchantments.Enchantment.QUICK_CHARGE, 5, true);
             meta.setEnchantmentGlintOverride(false);
+            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
             item.setItemMeta(meta);
         }
         return item;
