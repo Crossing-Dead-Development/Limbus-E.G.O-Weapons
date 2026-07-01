@@ -236,7 +236,7 @@ public class WeaponEvents {
 
     // ── 莊嚴哀悼：放開後射擊 ─────────────────────────────────────────────────
 
-    public static void handleSolemnLamentFire(PlayerEntity player, ServerWorld world, SolemnLamentItem weapon) {
+    public static void handleSolemnLamentFire(PlayerEntity player, ServerWorld world, SolemnLamentItem weapon, float power) {
         long now = System.currentTimeMillis();
         if (now - solemnCooldowns.getOrDefault(player.getUuid(), 0L) < 1200) return;
 
@@ -246,21 +246,18 @@ public class WeaponEvents {
         solemnCooldowns.put(player.getUuid(), now);
         if (ammo != null) ammo.decrement(1);
 
-        spawnSolemnProjectile(player, world, weapon.isBlack);
+        spawnSolemnProjectile(player, world, weapon.isBlack, power);
     }
 
-    /** 弩式發射：彈藥已於上膛時消耗，此處只負責射出。 */
-    public static void fireSolemnCharged(PlayerEntity player, ServerWorld world, SolemnLamentItem weapon) {
-        spawnSolemnProjectile(player, world, weapon.isBlack);
-    }
-
-    private static void spawnSolemnProjectile(PlayerEntity player, ServerWorld world, boolean isBlack) {
+    private static void spawnSolemnProjectile(PlayerEntity player, ServerWorld world, boolean isBlack, float power) {
         ItemStack visual = new ItemStack(ModItems.BUTTERFLY_QUARTZ);
         ItemEntity proj  = new ItemEntity(world,
                 player.getX(), player.getEyeY(), player.getZ(), visual);
         proj.setPickupDelay(32767);
 
-        Vec3d dir = player.getRotationVector().multiply(3.0);
+        // 拉弓越滿彈速越快 (1.2 ~ 3.2)
+        float speed = 1.2f + 2.0f * Math.max(0.0f, Math.min(1.0f, power));
+        Vec3d dir = player.getRotationVector().multiply(speed);
         proj.setVelocity(dir);
         proj.setNeverDespawn();
         world.spawnEntity(proj);
@@ -268,7 +265,7 @@ public class WeaponEvents {
         activeProjectiles.add(new ProjectileData(proj, player.getUuid(), isBlack, new int[]{0}));
 
         world.playSound(null, player.getBlockPos(), ModSounds.SOLEMN_SHOOT,
-                SoundCategory.PLAYERS, 0.8f, 1.0f);
+                SoundCategory.PLAYERS, 0.8f, 0.9f + 0.2f * power);
     }
 
     private static void tickProjectiles(MinecraftServer server) {
