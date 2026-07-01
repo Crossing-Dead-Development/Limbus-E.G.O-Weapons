@@ -314,6 +314,14 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
         if (args.length == 0) return true;
         String first = args[0].toLowerCase();
 
+        if ("reload".equals(first) && !(sender instanceof Player)) {
+            // console 版本
+            if (!sender.hasPermission("limbus.admin") && !(sender instanceof org.bukkit.command.ConsoleCommandSender)) return true;
+            sender.sendMessage("[LimbusEGOWeapons] 完整重新載入中…");
+            reloadPluginFully(sender);
+            return true;
+        }
+
         if ("give".equals(first)) {
             if (!sender.hasPermission("limbus.admin") && !(sender instanceof org.bukkit.command.ConsoleCommandSender)) return true;
             if (args.length < 3) { sender.sendMessage("用法：/getego give <玩家> <武器ID>"); return true; }
@@ -350,6 +358,15 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
             player.openInventory(new WeaponCatalogGUI(this, WeaponCatalogGUI.TAB_ALL).getInventory());
             return true;
         }
+        if ("reload".equals(first)) {
+            if (!player.hasPermission("limbus.admin") && !player.isOp()) {
+                player.sendMessage(translateHexColorCodes("&#FF5555你沒有權限使用此指令。"));
+                return true;
+            }
+            player.sendMessage(translateHexColorCodes("&#FFD700[LimbusEGOWeapons] &#AAAAAA完整重新載入中…"));
+            reloadPluginFully(sender);
+            return true;
+        }
         // 其餘子指令（直接給玩家自己物品）需要管理權限
         if (!player.hasPermission("limbus.admin") && !player.isOp()) return true;
         if ("tiger_mark".equals(first)) {
@@ -374,10 +391,28 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
             List<String> completions = new ArrayList<>(
                     List.of("brush", "black", "white", "butterflies", "shield", "mimicry", "dacapo",
                             "tiantui", "tiger_mark", "savage_tiger_mark", "chatuhu", "twilight",
-                            "apocalypse_bird", "admin", "catalog"));
+                            "apocalypse_bird", "admin", "catalog", "reload"));
             return completions.stream().filter(s -> s.startsWith(args[0].toLowerCase())).toList();
         }
         return Collections.emptyList();
+    }
+
+    /**
+     * 完整重新載入插件：disable → enable。
+     * 排到下一 tick 避免在指令執行中把自己 disable 掉導致的 UB。
+     */
+    private void reloadPluginFully(CommandSender sender) {
+        getServer().getScheduler().runTask(this, () -> {
+            org.bukkit.plugin.PluginManager pm = getServer().getPluginManager();
+            try {
+                pm.disablePlugin(this);
+                pm.enablePlugin(this);
+                sender.sendMessage(translateHexColorCodes("&#FFD700[LimbusEGOWeapons] &#AAAAAA重新載入完成。"));
+            } catch (Throwable t) {
+                sender.sendMessage(translateHexColorCodes("&#FF5555[LimbusEGOWeapons] 重新載入失敗：" + t.getMessage()));
+                getLogger().severe("完整重新載入失敗:" + t);
+            }
+        });
     }
 
     // ── 顏色代碼工具 ─────────────────────────────────────────────────────────
