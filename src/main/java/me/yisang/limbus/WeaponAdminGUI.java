@@ -16,9 +16,9 @@ public class WeaponAdminGUI implements InventoryHolder {
     // Slot layout (36-slot / 4 rows):
     // Row 0: all filler
     // Row 1: [filler, brush, mimicry, dacapo, filler, black, white, butterflies, shield]
-    // Row 2: [filler, tiantui_star, tiger_mark, savage_tiger_mark, filler...]
-    // Row 3: all filler
-    static final int[] ITEM_SLOTS = {10, 11, 12, 14, 15, 16, 17, 19, 20, 21, 22, 23, 24, 25};
+    // Row 2: [filler, tiantui, tiger_mark, savage_tiger_mark, chatuhu, twilight, apocalypse_bird, tibia]
+    // Row 3: [filler, w_corp_knife, bladesinger, ...filler]
+    static final int[] ITEM_SLOTS = {10, 11, 12, 14, 15, 16, 17, 19, 20, 21, 22, 23, 24, 25, 28, 29};
 
     public WeaponAdminGUI(LimbusEGOWeapons plugin) {
         inventory = Bukkit.createInventory(this, 36, "§6✦ 武器管理");
@@ -41,7 +41,7 @@ public class WeaponAdminGUI implements InventoryHolder {
         inventory.setItem(16, solemn.createItem("butterflies"));
         inventory.setItem(17, solemn.createItem("shield"));
 
-        // Row 2 — 天退星系列
+        // Row 2 — 天退星系列 + 薄暝 + 提比婭
         inventory.setItem(19, tiantui.createItem());
         inventory.setItem(20, tiantui.createTigerMark(1));
         inventory.setItem(21, tiantui.createSavageTigerMark(1));
@@ -49,6 +49,10 @@ public class WeaponAdminGUI implements InventoryHolder {
         inventory.setItem(23, plugin.getTwilight().createItem());
         inventory.setItem(24, plugin.getTwilight().createApocalypseBirdPack(1));
         inventory.setItem(25, plugin.getTibia().createItem());
+
+        // Row 3 — W公司 / 著影
+        inventory.setItem(28, plugin.getWeaponModule("w_corp_knife").createItem());
+        inventory.setItem(29, plugin.getWeaponModule("bladesinger").createItem());
     }
 
     @Override

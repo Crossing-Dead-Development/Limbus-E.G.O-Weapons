@@ -72,8 +72,6 @@ public class WeaponCatalogGUI implements InventoryHolder {
         list.add(s.createItem("white"));
         list.add(s.createItem("butterflies"));
         list.add(s.createItem("shield"));
-        list.add(plugin.getWeaponModule("w_corp_knife").createItem());
-        list.add(plugin.getWeaponModule("bladesinger").createItem());
         return list;
     }
 
@@ -88,6 +86,8 @@ public class WeaponCatalogGUI implements InventoryHolder {
         list.add(w.createItem());
         list.add(w.createApocalypseBirdPack(1));
         list.add(plugin.getTibia().createItem());
+        list.add(plugin.getWeaponModule("w_corp_knife").createItem());
+        list.add(plugin.getWeaponModule("bladesinger").createItem());
         return list;
     }
 

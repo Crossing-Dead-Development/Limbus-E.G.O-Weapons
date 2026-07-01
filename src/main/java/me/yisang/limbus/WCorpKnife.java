@@ -67,11 +67,18 @@ public class WCorpKnife implements EGOWeapon, Listener {
         if (sm == null) return;
         StatusState s = sm.get(attacker);
         int cur = s == null ? 0 : s.potency(StatusEffect.CHARGE);
-        // 上限保護：potency 達 10 就只 refresh 續 count（維持滿充能）
+        // 基礎：potency 達上限就只 refresh 續 count（維持滿充能）
         if (cur < CHARGE_POTENCY_CAP) {
             sm.apply(attacker, StatusEffect.CHARGE, CHARGE_PER_HIT, CHARGE_COUNT_PER_HIT, attacker);
         } else {
             sm.refresh(attacker, StatusEffect.CHARGE, CHARGE_COUNT_PER_HIT);
+        }
+        // 過載：20% 機率額外 +1 potency +1 count（層數與級數同步再上一階）
+        if (Math.random() < 0.20) {
+            sm.apply(attacker, StatusEffect.CHARGE, 1, 1, attacker);
+            attacker.sendActionBar(plugin.translateHexColorCodes("&#66E1FF&l⚡ 過載 &7» &f+1 層 / +1 級"));
+            attacker.getWorld().spawnParticle(org.bukkit.Particle.ELECTRIC_SPARK,
+                    attacker.getLocation().add(0, 1.2, 0), 8, 0.2, 0.3, 0.2, 0.05);
         }
     }
 }
