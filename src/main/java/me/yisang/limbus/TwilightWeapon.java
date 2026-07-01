@@ -22,8 +22,10 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -43,6 +45,7 @@ public class TwilightWeapon implements EGOWeapon, Listener {
 
     private final LimbusEGOWeapons plugin;
     private final Map<UUID, Long> specialCooldown = new HashMap<>();
+    private final Set<UUID> charging = new HashSet<>();
 
     public TwilightWeapon(LimbusEGOWeapons plugin) { this.plugin = plugin; }
 
@@ -180,14 +183,17 @@ public class TwilightWeapon implements EGOWeapon, Listener {
 
         event.setCancelled(true);
 
+        UUID uid = player.getUniqueId();
+        if (charging.contains(uid)) return;
+
         long now = System.currentTimeMillis();
-        long cd = specialCooldown.getOrDefault(player.getUniqueId(), 0L);
+        long cd = specialCooldown.getOrDefault(uid, 0L);
         if (now < cd) {
             player.sendActionBar(plugin.translateHexColorCodes(
                     "&#8E7CC3暮光斬冷卻中…" + ((cd - now) / 1000 + 1) + "s"));
             return;
         }
-        specialCooldown.put(player.getUniqueId(), now + SPECIAL_COOLDOWN_MS + CHARGE_TICKS * 50L);
+        charging.add(uid);
 
         player.getWorld().playSound(player.getLocation(), Sound.ITEM_TRIDENT_RIPTIDE_1, 0.7f, 0.6f);
 
@@ -196,8 +202,10 @@ public class TwilightWeapon implements EGOWeapon, Listener {
             int t = 0;
             @Override
             public void run() {
+                if (!charging.contains(uid)) { cancel(); return; }
                 if (!player.isOnline() || player.isDead()
                         || !plugin.hasItemId(player.getInventory().getItemInMainHand(), "twilight")) {
+                    charging.remove(uid);
                     cancel();
                     return;
                 }
@@ -208,10 +216,30 @@ public class TwilightWeapon implements EGOWeapon, Listener {
                 t++;
                 if (t >= CHARGE_TICKS) {
                     cancel();
+                    charging.remove(uid);
+                    specialCooldown.put(uid, System.currentTimeMillis() + SPECIAL_COOLDOWN_MS);
                     twilightSlash(player);
                 }
             }
         }.runTaskTimer(plugin, 1L, 1L);
+    }
+
+    // 切槽/離線中止暮光斬蓄力(不寫入冷卻)
+    @EventHandler
+    public void onItemHeld(org.bukkit.event.player.PlayerItemHeldEvent event) {
+        charging.remove(event.getPlayer().getUniqueId());
+    }
+
+    @EventHandler
+    public void onSwapHand(org.bukkit.event.player.PlayerSwapHandItemsEvent event) {
+        charging.remove(event.getPlayer().getUniqueId());
+    }
+
+    @EventHandler
+    public void onQuit(org.bukkit.event.player.PlayerQuitEvent event) {
+        UUID id = event.getPlayer().getUniqueId();
+        charging.remove(id);
+        specialCooldown.remove(id);
     }
 
     private void twilightSlash(Player player) {
@@ -251,6 +279,7 @@ public class TwilightWeapon implements EGOWeapon, Listener {
                 double angle = look.angle(to.normalize());
                 if (angle > Math.toRadians(55)) continue; // 扇形 ±55°
 
+                target.setNoDamageTicks(0); // 清無敵幀,確保常規部分不被吸收
                 target.damage(baseDmg * (1.0 - TRUE_FRACTION), player);
                 double trueDmg = baseDmg * TRUE_FRACTION;
                 if (target.isValid() && !target.isDead()) dealTrueDamage(target, trueDmg, player);

@@ -208,10 +208,19 @@ public class TiantuiStar implements EGOWeapon, Listener {
                 player.getWorld().spawnParticle(savage ? Particle.FLAME : Particle.CRIT,
                         player.getLocation().add(0, 1.0, 0), savage ? 6 : 3,
                         0.4, 0.4, 0.4, 0.01);
+                // 蓄力進度條 (每 2 tick 更新一次)
+                if (t % 2 == 0) {
+                    int filled = (int) Math.round((double) t / ticks * 10);
+                    StringBuilder bar = new StringBuilder();
+                    for (int i = 0; i < 10; i++) bar.append(i < filled ? '▮' : '▯');
+                    player.sendActionBar(plugin.translateHexColorCodes(
+                            (savage ? "&#C0392B猛虎標彈 " : "&#E67E22虎標彈 ") + bar));
+                }
                 t++;
                 if (t >= ticks) {
                     cancel();
                     charging.remove(player.getUniqueId());
+                    ignoreMoveUntil.remove(player.getUniqueId());
                     fireDash(player, savage);
                 }
             }
@@ -281,6 +290,7 @@ public class TiantuiStar implements EGOWeapon, Listener {
         Charge c = charging.remove(player.getUniqueId());
         if (c == null) return;
         c.task().cancel();
+        ignoreMoveUntil.remove(player.getUniqueId());
         player.removePotionEffect(PotionEffectType.SLOWNESS);
         player.stopSound("tiantui_star:tiantui.charge_tiger");
         player.stopSound("tiantui_star:tiantui.charge_savage_1");
@@ -362,9 +372,18 @@ public class TiantuiStar implements EGOWeapon, Listener {
 
         new BukkitRunnable() {
             int t = 0;
+            Location lastLoc = player.getLocation();
             @Override
             public void run() {
                 if (!player.isOnline() || player.isDead()) { cancel(); return; }
+
+                // 撞牆偵測:第一 tick 之後,若水平位移過小視為撞牆,提早結束
+                if (t > 0) {
+                    double dx = player.getLocation().getX() - lastLoc.getX();
+                    double dz = player.getLocation().getZ() - lastLoc.getZ();
+                    if (dx * dx + dz * dz < 0.04) { cancel(); return; }
+                }
+                lastLoc = player.getLocation();
 
                 player.setVelocity(vel);
 
@@ -421,13 +440,12 @@ public class TiantuiStar implements EGOWeapon, Listener {
     }
 
     private boolean consumeAmmo(Player player, String id) {
-        ItemStack[] contents = player.getInventory().getContents();
-        for (int i = 0; i < contents.length; i++) {
-            ItemStack it = contents[i];
+        org.bukkit.inventory.PlayerInventory inv = player.getInventory();
+        for (int i = 0; i < inv.getSize(); i++) {
+            ItemStack it = inv.getItem(i);
             if (!plugin.hasItemId(it, id)) continue;
-            if (it.getAmount() <= 1) contents[i] = null;
+            if (it.getAmount() <= 1) inv.setItem(i, null);
             else it.setAmount(it.getAmount() - 1);
-            player.getInventory().setContents(contents);
             return true;
         }
         return false;
