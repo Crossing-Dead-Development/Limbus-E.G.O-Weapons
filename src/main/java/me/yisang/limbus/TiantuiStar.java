@@ -44,6 +44,9 @@ public class TiantuiStar implements EGOWeapon, Listener {
 
     private final LimbusEGOWeapons plugin;
     private final Map<UUID, Charge> charging = new HashMap<>();
+    // 受擊後短暫忽略 onMove 的擊退位移,避免蓄力被打即中斷
+    private final Map<UUID, Long> ignoreMoveUntil = new HashMap<>();
+    private static final long HIT_IGNORE_MOVE_MS = 500L;
 
     public TiantuiStar(LimbusEGOWeapons plugin) { this.plugin = plugin; }
 
@@ -306,20 +309,33 @@ public class TiantuiStar implements EGOWeapon, Listener {
         if (!event.isSneaking()) cancelCharge(event.getPlayer());
     }
 
-    // 水平移動取消（忽略視角與 Y 軸掉落／彈跳）
+    // 水平移動取消（忽略視角、Y 軸掉落／彈跳、以及受擊擊退窗口）
     @EventHandler
     public void onMove(org.bukkit.event.player.PlayerMoveEvent event) {
-        if (!charging.containsKey(event.getPlayer().getUniqueId())) return;
+        UUID id = event.getPlayer().getUniqueId();
+        if (!charging.containsKey(id)) return;
         if (event.getTo() == null) return;
+        Long until = ignoreMoveUntil.get(id);
+        if (until != null && System.currentTimeMillis() < until) return;
         double dx = event.getTo().getX() - event.getFrom().getX();
         double dz = event.getTo().getZ() - event.getFrom().getZ();
         if (dx * dx + dz * dz > 0.01) cancelCharge(event.getPlayer());
     }
 
+    // 蓄力中被打:開啟短暫的 onMove 忽略窗口,吸收擊退位移
+    @EventHandler
+    public void onDamaged(org.bukkit.event.entity.EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof Player p)) return;
+        if (!charging.containsKey(p.getUniqueId())) return;
+        ignoreMoveUntil.put(p.getUniqueId(), System.currentTimeMillis() + HIT_IGNORE_MOVE_MS);
+    }
+
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        Charge c = charging.remove(event.getPlayer().getUniqueId());
+        UUID id = event.getPlayer().getUniqueId();
+        Charge c = charging.remove(id);
         if (c != null) c.task().cancel();
+        ignoreMoveUntil.remove(id);
     }
 
     // ── 衝刺 ────────────────────────────────────────────────────────────────────

@@ -150,7 +150,7 @@ public class TwilightWeapon implements EGOWeapon, Listener {
         // 30% 真實傷害，下一 tick 套用（避開無敵幀；setHealth 無視盔甲/抗性）
         double trueDmg = base * mult * TRUE_FRACTION;
         plugin.getServer().getScheduler().runTask(plugin, () -> {
-            if (target.isValid() && !target.isDead()) dealTrueDamage(target, trueDmg);
+            if (target.isValid() && !target.isDead()) dealTrueDamage(target, trueDmg, attacker);
         });
 
         target.getWorld().spawnParticle(Particle.WHITE_ASH,
@@ -225,16 +225,19 @@ public class TwilightWeapon implements EGOWeapon, Listener {
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1.2f, 0.6f);
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PHANTOM_FLAP, 1.0f, 0.7f);
 
-        // 扇形粒子波
-        Location eye = player.getEyeLocation();
-        for (double d = 1.0; d <= range; d += 0.6) {
-            for (double deg = -50; deg <= 50; deg += 10) {
-                Vector v = rotateY(look.clone(), Math.toRadians(deg)).multiply(d);
-                Location p = eye.clone().add(v);
-                player.getWorld().spawnParticle(Particle.WHITE_ASH, p, 2, 0.05, 0.05, 0.05, 0.0);
-                player.getWorld().spawnParticle(Particle.DUST, p, 1, 0, 0, 0,
-                        new Particle.DustOptions(Color.fromRGB(0x6C5B9E), 1.4f));
+        // 扇形劍氣：以玩家腰部為中心,沿弧線每 5° 一片 SWEEP_ATTACK,前緣加細塵勾邊
+        Location origin = player.getLocation().add(0, 1.1, 0);
+        for (double deg = -55; deg <= 55; deg += 5) {
+            Vector dir = rotateY(look.clone(), Math.toRadians(deg));
+            // 沿弧線 3 段推進,形成有厚度的劍氣扇面
+            for (double d = 1.2; d <= range; d += 1.6) {
+                Location p = origin.clone().add(dir.clone().multiply(d));
+                player.getWorld().spawnParticle(Particle.SWEEP_ATTACK, p, 1, 0, 0, 0, 0);
             }
+            // 扇面外緣:一道細灰塵勾邊,強化「刀鋒劃過」的線條感
+            Location edge = origin.clone().add(dir.clone().multiply(range));
+            player.getWorld().spawnParticle(Particle.DUST, edge, 3, 0.15, 0.15, 0.15, 0,
+                    new Particle.DustOptions(Color.fromRGB(0xE6D9FF), 1.0f));
         }
 
         // 標記為自訂傷害，避免 target.damage 再觸發 handleMelee 重複加成
@@ -250,7 +253,7 @@ public class TwilightWeapon implements EGOWeapon, Listener {
 
                 target.damage(baseDmg * (1.0 - TRUE_FRACTION), player);
                 double trueDmg = baseDmg * TRUE_FRACTION;
-                if (target.isValid() && !target.isDead()) dealTrueDamage(target, trueDmg);
+                if (target.isValid() && !target.isDead()) dealTrueDamage(target, trueDmg, player);
                 target.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 80, 1));
             }
         } finally {
@@ -268,8 +271,11 @@ public class TwilightWeapon implements EGOWeapon, Listener {
         return 1.0 + MAX_LOWHP_BONUS * (1.0 - frac);
     }
 
-    /** 真實傷害：先扣吸收再扣生命，無視盔甲與抗性。 */
-    private void dealTrueDamage(LivingEntity target, double dmg) {
+    /**
+     * 真實傷害：先扣吸收再扣生命，無視盔甲與抗性。
+     * 若這一擊會致死，先寫入 killer 讓 EntityDeathEvent 能認到玩家（掉落表、經驗、統計）。
+     */
+    private void dealTrueDamage(LivingEntity target, double dmg, Player attacker) {
         if (dmg <= 0) return;
         double absorb = target.getAbsorptionAmount();
         if (absorb > 0) {
@@ -278,7 +284,11 @@ public class TwilightWeapon implements EGOWeapon, Listener {
             dmg -= used;
         }
         if (dmg <= 0) return;
-        target.setHealth(Math.max(0.0, target.getHealth() - dmg));
+        double newHp = Math.max(0.0, target.getHealth() - dmg);
+        if (newHp <= 0.0 && attacker != null) {
+            try { target.setKiller(attacker); } catch (Throwable ignored) {}
+        }
+        target.setHealth(newHp);
         target.getWorld().spawnParticle(Particle.CRIT, target.getLocation().add(0, 1.0, 0),
                 6, 0.2, 0.3, 0.2, 0.05);
     }
