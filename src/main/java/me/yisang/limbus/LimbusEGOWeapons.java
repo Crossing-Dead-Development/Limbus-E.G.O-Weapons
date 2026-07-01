@@ -37,8 +37,8 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
     private TwilightWeapon twilight;
     private SoundSuppressor soundSuppressor;
 
-    private static final String PACK_URL  = "https://github.com/EvansGoethe/Limbus-E.G.O-weapon-plugin-ResourcePack/releases/download/v.2.14/Limbus_E.G.O_Weapons_plugin_ResourcePack.v.2.14.zip";
-    private static final String PACK_HASH = "60f63086b83f578dfde1f5d51ea1617bea98876a";
+    private static final String PACK_URL  = "https://github.com/EvansGoethe/Limbus-E.G.O-weapon-plugin-ResourcePack/releases/download/v.2.15/Limbus_E.G.O_Weapons_plugin_ResourcePack.v.2.15.zip";
+    private static final String PACK_HASH = "126dcc7100d594f2a7589ecebdc3dd7b8c44a052";
     private static final String PACK_FILENAME = "resourcepack.zip";
 
     /**
