@@ -223,6 +223,7 @@ Each weapon's `item_model` and base material is listed above and can be referenc
 
 ---
 
-## Fabric Port
+### 📜 License / credits
 
-A Fabric 1.21.4 port is maintained on the `master` branch.
+- See `LICENSE.csv`.
+- Characters, gift names, and original designs are © **Project Moon / Limbus Company**. This is a non-commercial fan pack.
