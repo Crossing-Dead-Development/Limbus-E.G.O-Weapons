@@ -6,5 +6,5 @@ api-version: "1.21.4"
 softdepend: [ProtocolLib]
 commands:
   getego:
-    description: E.G.O weapons: give / catalog / language / reload
+    description: "E.G.O weapons: give / catalog / language / reload"
     usage: /getego <give|catalog|reload|language|...>
