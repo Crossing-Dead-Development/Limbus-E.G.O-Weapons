@@ -4,11 +4,11 @@
 
 A Paper plugin bringing Limbus Company's E.G.O weapons and their **attack attribute / sanity system** into Minecraft.
 
-- **Version**: 3.0.2
+- **Version**: 3.0.3
 - **Minecraft**: 1.21.4
 - **Platform**: Paper (requires `setItemModel` API)
 - **Soft-depend**: [ProtocolLib](https://www.spigotmc.org/resources/protocollib.1997/) (optional — suppresses vanilla crossbow sounds heard by nearby players when firing Solemn Lament)
-- **Resource Pack**: v.2.16, distributed by an external ResourcePackManager (this plugin does not push directly)
+- **Resource Pack**: v.2.17 (repacked alongside Tibia), distributed by an external ResourcePackManager (this plugin does not push directly)
 
 ---
 
@@ -188,7 +188,7 @@ Vanilla crossbow sounds heard by the *shooter themselves* are client-side predic
 Distributed externally. On enable, syncs asynchronously to `plugins/LimbusEGOWeapons/resourcepack.zip` (skipped if hash matches), then handed off to ResourcePackManager for merged distribution.
 
 - Source: [Limbus-E.G.O-weapon-plugin-ResourcePack](https://github.com/EvansGoethe/Limbus-E.G.O-weapon-plugin-ResourcePack)
-- Current version: **v.2.16**
+- Current version: **v.2.17** (SHA-1 `060302e85c12d23127b7c4eb3b7050c82615e20d`)
 
 Each weapon's `item_model` and base material is listed above and can be referenced by external plugins (e.g. BattlePass).
 
