@@ -8,7 +8,7 @@
 - **Minecraft 版本**：1.21.4
 - **平台**：Paper（需支援 `setItemModel` API）
 - **軟相依**：[ProtocolLib](https://www.spigotmc.org/resources/protocollib.1997/)（可選，攔截莊嚴哀悼周圍他人聽到的原版弓箭聲）
-- **資源包**：v.2.17（隨提比婭一併重新打包），由外部 ResourcePackManager 合併分發（本插件不主動推送）
+- **資源包**：v.2.17（隨提比婭一併重新打包），由外部 [ResourcePackManager](https://www.spigotmc.org/resources/resource-pack-manager.118574/) 合併分發（本插件不主動推送）
 
 ## v3.2.0 更新重點
 
