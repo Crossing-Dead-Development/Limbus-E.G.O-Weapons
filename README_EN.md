@@ -4,11 +4,16 @@
 
 A Paper plugin bringing Limbus Company's E.G.O weapons and their **attack attribute / sanity system** into Minecraft.
 
-- **Version**: 3.1.0
+- **Version**: 3.2.0
 - **Minecraft**: 1.21.4
 - **Platform**: Paper (requires `setItemModel` API)
 - **Soft-depend**: [ProtocolLib](https://www.spigotmc.org/resources/protocollib.1997/) (optional — suppresses vanilla crossbow sounds heard by nearby players when firing Solemn Lament)
 - **Resource Pack**: v.2.17 (repacked alongside Tibia), distributed by an external ResourcePackManager (this plugin does not push directly)
+
+## v3.2.0 highlights
+
+- **Performance**: melee attack events now read the PDC id once and dispatch via lookup table (previously copied one ItemMeta per weapon module); the shield tick does a cheap material check first so non-shield players never touch ItemMeta; status-system NamespacedKeys are cached at construction.
+- **Give command registry**: `/getego give` and the self-give branch share a single item registry; tab-complete is derived from it automatically (now alphabetically sorted).
 
 ---
 
@@ -199,7 +204,7 @@ Vanilla crossbow sounds heard by the *shooter themselves* are client-side predic
 | Target | Handling | Requirement |
 |--------|----------|-------------|
 | **Others** hearing your Solemn Lament crossbow | ProtocolLib intercepts world/entity sound packets | ProtocolLib installed (optional) |
-| **The shooter** hearing their own predicted sound | Fabric client mod intercepts `SoundManager.play` | Player installs [fabric-1.0.1](https://github.com/EvansGoethe/Limbus-E.G.O-Weapons/releases/tag/fabric-1.0.1) |
+| **The shooter** hearing their own predicted sound | Fabric client mod intercepts `SoundManager.play` | Player installs [fabric-1.0.1](https://github.com/Crossing-Dead-Development/Limbus-E.G.O-Weapons/releases/tag/fabric-1.0.1) |
 
 ---
 
@@ -207,7 +212,7 @@ Vanilla crossbow sounds heard by the *shooter themselves* are client-side predic
 
 Distributed externally. On enable, syncs asynchronously to `plugins/LimbusEGOWeapons/resourcepack.zip` (skipped if hash matches), then handed off to ResourcePackManager for merged distribution.
 
-- Source: [Limbus-E.G.O-weapon-plugin-ResourcePack](https://github.com/EvansGoethe/Limbus-E.G.O-weapon-plugin-ResourcePack)
+- Source: [Limbus-E.G.O-weapon-plugin-ResourcePack](https://github.com/Crossing-Dead-Development/Limbus-E.G.O-weapon-plugin-ResourcePack)
 - Current version: **v.2.17** (SHA-1 `060302e85c12d23127b7c4eb3b7050c82615e20d`)
 
 Each weapon's `item_model` and base material is listed above and can be referenced by external plugins (e.g. BattlePass).
@@ -219,7 +224,7 @@ Each weapon's `item_model` and base material is listed above and can be referenc
 1. Drop the `.jar` into `plugins/`
 2. (Optional) Install ProtocolLib to enable Solemn Lament ambient sound suppression for nearby players
 3. Start the server
-4. (Optional) Players install the [fabric-1.0.1](https://github.com/EvansGoethe/Limbus-E.G.O-Weapons/releases/tag/fabric-1.0.1) client mod to suppress their own predicted crossbow sounds
+4. (Optional) Players install the [fabric-1.0.1](https://github.com/Crossing-Dead-Development/Limbus-E.G.O-Weapons/releases/tag/fabric-1.0.1) client mod to suppress their own predicted crossbow sounds
 
 ---
 
