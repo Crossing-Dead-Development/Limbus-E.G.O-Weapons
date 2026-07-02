@@ -226,4 +226,4 @@ Each weapon's `item_model` and base material is listed above and can be referenc
 ### 📜 License / credits
 
 - See `LICENSE.csv`.
-- Characters, gift names, and original designs are © **Project Moon / Limbus Company**. This is a non-commercial fan pack.
+- Characters, gift names, and original designs are © **Project Moon / Limbus Company**. This is a non-commercial fan plugin.
