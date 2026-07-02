@@ -45,6 +45,9 @@ public class SanityManager {
     private static final String ATK_MOD_KEY = "san_atk";
     private static final String SPD_MOD_KEY = "san_spd";
 
+    private final NamespacedKey atkModKey;
+    private final NamespacedKey spdModKey;
+
     private final Map<UUID, Integer> san = new ConcurrentHashMap<>();
     /** [0]=攻擊命中累計, [1]=受擊累計 */
     private final Map<UUID, int[]> counters = new ConcurrentHashMap<>();
@@ -53,6 +56,8 @@ public class SanityManager {
 
     public SanityManager(LimbusEGOWeapons plugin) {
         this.plugin = plugin;
+        this.atkModKey = new NamespacedKey(plugin, ATK_MOD_KEY);
+        this.spdModKey = new NamespacedKey(plugin, SPD_MOD_KEY);
     }
 
     public void start() {
@@ -114,14 +119,13 @@ public class SanityManager {
      * 每次呼叫先移除舊 modifier 再加新的，避免多次疊加。
      */
     private void applyAttributeModifiers(Player p, int san) {
-        setModifier(p, Attribute.ATTACK_DAMAGE, ATK_MOD_KEY, san * ATK_PER_SAN);
-        setModifier(p, Attribute.MOVEMENT_SPEED, SPD_MOD_KEY, san * SPD_PER_SAN);
+        setModifier(p, Attribute.ATTACK_DAMAGE, atkModKey, san * ATK_PER_SAN);
+        setModifier(p, Attribute.MOVEMENT_SPEED, spdModKey, san * SPD_PER_SAN);
     }
 
-    private void setModifier(Player p, Attribute attr, String keyName, double amount) {
+    private void setModifier(Player p, Attribute attr, NamespacedKey key, double amount) {
         AttributeInstance inst = p.getAttribute(attr);
         if (inst == null) return;
-        NamespacedKey key = new NamespacedKey(plugin, keyName);
         inst.getModifiers().stream()
                 .filter(m -> key.equals(m.getKey()))
                 .findFirst()
@@ -144,8 +148,8 @@ public class SanityManager {
     }
 
     private void clearAttributeModifiers(Player p) {
-        setModifier(p, Attribute.ATTACK_DAMAGE, ATK_MOD_KEY, 0.0);
-        setModifier(p, Attribute.MOVEMENT_SPEED, SPD_MOD_KEY, 0.0);
+        setModifier(p, Attribute.ATTACK_DAMAGE, atkModKey, 0.0);
+        setModifier(p, Attribute.MOVEMENT_SPEED, spdModKey, 0.0);
     }
 
     /** 攻擊命中：每 2 次 +1 SAN。 */

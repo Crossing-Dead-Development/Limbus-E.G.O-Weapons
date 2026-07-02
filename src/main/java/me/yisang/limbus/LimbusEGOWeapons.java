@@ -31,6 +31,12 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
     private NamespacedKey ITEM_ID_KEY;
 
     private final Map<String, EGOWeapon> weaponModules = new HashMap<>();
+    /** 以武器 PDC item id（getId()）為 key，供近戰事件單次查表，避免逐模組讀 ItemMeta。 */
+    private final Map<String, EGOWeapon> weaponsByItemId = new HashMap<>();
+    /** 特殊物品（彈藥/組合包）工廠：id → amount 建物品。give 指令與 tab-complete 共用。 */
+    private final Map<String, java.util.function.IntFunction<ItemStack>> specialItems = new LinkedHashMap<>();
+    /** 莊嚴哀悼系列的 give 類型。 */
+    private static final Set<String> SOLEMN_TYPES = Set.of("black", "white", "butterflies", "shield");
     private final Map<UUID, Long> solemnCooldowns = new HashMap<>();
     private solemnlament solemn;
     private TiantuiStar tiantui;
@@ -41,7 +47,7 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
     private me.yisang.limbus.status.SanityManager sanityManager;
     private me.yisang.limbus.lang.LangManager lang;
 
-    private static final String PACK_URL  = "https://github.com/EvansGoethe/Limbus-E.G.O-weapon-plugin-ResourcePack/releases/download/v.2.17/Limbus_E.G.O_Weapons_plugin_ResourcePack.v.2.17.zip";
+    private static final String PACK_URL  = "https://github.com/Crossing-Dead-Development/Limbus-E.G.O-weapon-plugin-ResourcePack/releases/download/v.2.17/Limbus_E.G.O_Weapons_plugin_ResourcePack.v.2.17.zip";
     private static final String PACK_HASH = "060302e85c12d23127b7c4eb3b7050c82615e20d";
     private static final String PACK_FILENAME = "resourcepack.zip";
 
@@ -116,12 +122,16 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
         return out;
     }
 
-    public boolean hasItemId(ItemStack item, String id) {
-        if (item == null || !item.hasItemMeta()) return false;
-        String value = item.getItemMeta()
+    /** 讀取物品的 PDC item id；非本插件物品回傳 null。 */
+    public String getItemId(ItemStack item) {
+        if (item == null || !item.hasItemMeta()) return null;
+        return item.getItemMeta()
                 .getPersistentDataContainer()
                 .get(ITEM_ID_KEY, PersistentDataType.STRING);
-        return id.equals(value);
+    }
+
+    public boolean hasItemId(ItemStack item, String id) {
+        return id.equals(getItemId(item));
     }
 
     // ── 初始化 ──────────────────────────────────────────────────────────────────
@@ -150,6 +160,13 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
         weaponModules.put("tibia", tibia);
         weaponModules.put("w_corp_knife", wknife);
         weaponModules.put("bladesinger", blade);
+
+        for (EGOWeapon w : weaponModules.values()) weaponsByItemId.put(w.getId(), w);
+
+        specialItems.put("tiger_mark",        tiantui::createTigerMark);
+        specialItems.put("savage_tiger_mark", tiantui::createSavageTigerMark);
+        specialItems.put("chatuhu",           tiantui::createChatuhuPack);
+        specialItems.put("apocalypse_bird",   twilight::createApocalypseBirdPack);
 
         registerModule(m);
         registerModule(d);
@@ -212,9 +229,10 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
                 ItemStack offHand  = player.getInventory().getItemInOffHand();
                 ItemStack mainHand = player.getInventory().getItemInMainHand();
 
-                if (solemn.hasId(offHand, "solemn_shield")) {
+                // 先做便宜的材質檢查，沒拿盾的玩家不必複製 ItemMeta
+                if (offHand.getType() == Material.SHIELD && solemn.hasId(offHand, "solemn_shield")) {
                     solemn.handleShieldTick(player, offHand);
-                } else if (solemn.hasId(mainHand, "solemn_shield")) {
+                } else if (mainHand.getType() == Material.SHIELD && solemn.hasId(mainHand, "solemn_shield")) {
                     solemn.handleShieldTick(player, mainHand);
                 }
             }
@@ -306,14 +324,12 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
         if (event.getDamager().hasMetadata("lsmp_custom_damage")) return;
         if (!(event.getDamager() instanceof Player player)) return;
         ItemStack item = player.getInventory().getItemInMainHand();
-        if (item == null || !item.hasItemMeta()) return;
 
-        for (EGOWeapon ego : weaponModules.values()) {
-            if (hasItemId(item, ego.getId())) {
-                ego.handleMelee(event, player);
-                break;
-            }
-        }
+        // 讀一次 PDC id 直接查表，避免逐模組各複製一份 ItemMeta
+        String id = getItemId(item);
+        if (id == null) return;
+        EGOWeapon ego = weaponsByItemId.get(id);
+        if (ego != null) ego.handleMelee(event, player);
     }
 
     // ── 環指筆刷右鍵生物 ──────────────────────────────────────────────────────
@@ -398,19 +414,7 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
             if (args.length >= 4) {
                 try { amount = Math.max(1, Integer.parseInt(args[3])); } catch (NumberFormatException ignored) {}
             }
-            if ("tiger_mark".equals(weaponId)) {
-                target.getInventory().addItem(tiantui.createTigerMark(amount));
-            } else if ("savage_tiger_mark".equals(weaponId)) {
-                target.getInventory().addItem(tiantui.createSavageTigerMark(amount));
-            } else if ("chatuhu".equals(weaponId)) {
-                target.getInventory().addItem(tiantui.createChatuhuPack(amount));
-            } else if ("apocalypse_bird".equals(weaponId)) {
-                target.getInventory().addItem(twilight.createApocalypseBirdPack(amount));
-            } else if (weaponModules.containsKey(weaponId)) {
-                for (int i = 0; i < amount; i++) weaponModules.get(weaponId).give(target);
-            } else if (List.of("black", "white", "butterflies", "shield").contains(weaponId)) {
-                solemn.give(target, weaponId, amount);
-            }
+            giveWeaponItem(target, weaponId, amount);
             return true;
         }
 
@@ -426,30 +430,38 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
         }
         // 其餘子指令（直接給玩家自己物品）需要管理權限
         if (!player.hasPermission("limbus.admin") && !player.isOp()) return true;
-        if ("tiger_mark".equals(first)) {
-            player.getInventory().addItem(tiantui.createTigerMark(1));
-        } else if ("savage_tiger_mark".equals(first)) {
-            player.getInventory().addItem(tiantui.createSavageTigerMark(1));
-        } else if ("chatuhu".equals(first)) {
-            player.getInventory().addItem(tiantui.createChatuhuPack(1));
-        } else if ("apocalypse_bird".equals(first)) {
-            player.getInventory().addItem(twilight.createApocalypseBirdPack(1));
-        } else if (weaponModules.containsKey(first)) {
-            weaponModules.get(first).give(player);
-        } else if (List.of("black", "white", "butterflies", "shield").contains(first)) {
-            solemn.give(player, first);
-        }
+        giveWeaponItem(player, first, 1);
         return true;
+    }
+
+    /** 依 id 給予武器/彈藥/莊嚴哀悼系列物品。give 指令的兩個分支共用。 */
+    private boolean giveWeaponItem(Player target, String id, int amount) {
+        java.util.function.IntFunction<ItemStack> factory = specialItems.get(id);
+        if (factory != null) {
+            target.getInventory().addItem(factory.apply(amount));
+            return true;
+        }
+        EGOWeapon module = weaponModules.get(id);
+        if (module != null) {
+            for (int i = 0; i < amount; i++) module.give(target);
+            return true;
+        }
+        if (SOLEMN_TYPES.contains(id)) {
+            solemn.give(target, id, amount);
+            return true;
+        }
+        return false;
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            List<String> completions = new ArrayList<>(
-                    List.of("brush", "black", "white", "butterflies", "shield", "mimicry", "dacapo",
-                            "tiantui", "tiger_mark", "savage_tiger_mark", "chatuhu", "twilight",
-                            "apocalypse_bird", "tibia", "w_corp_knife", "bladesinger", "admin", "catalog",
-                            "reload", "language", "give"));
+            // 由註冊表推導，新武器/彈藥不必再手動同步這份清單
+            List<String> completions = new ArrayList<>(weaponModules.keySet());
+            completions.addAll(specialItems.keySet());
+            completions.addAll(SOLEMN_TYPES);
+            completions.addAll(List.of("admin", "catalog", "reload", "language", "give"));
+            Collections.sort(completions);
             return completions.stream().filter(s -> s.startsWith(args[0].toLowerCase())).toList();
         }
         if (args.length == 2 && ("language".equalsIgnoreCase(args[0]) || "lang".equalsIgnoreCase(args[0]))) {

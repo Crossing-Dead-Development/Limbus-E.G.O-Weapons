@@ -75,11 +75,13 @@ public class StatusManager implements Listener {
     private final LimbusEGOWeapons plugin;
     private final SanityManager sanity;
     private final ConcurrentHashMap<UUID, StatusState> states = new ConcurrentHashMap<>();
+    private final NamespacedKey sinkingSpeedKey;
     private int tickBucket = 0;
 
     public StatusManager(LimbusEGOWeapons plugin, SanityManager sanity) {
         this.plugin = plugin;
         this.sanity = sanity;
+        this.sinkingSpeedKey = new NamespacedKey(plugin, SINKING_SPEED_MOD_KEY);
     }
 
     public void start() {
@@ -335,16 +337,15 @@ public class StatusManager implements Listener {
     private void syncSinkingSpeed(LivingEntity target, StatusState s) {
         AttributeInstance inst = target.getAttribute(Attribute.MOVEMENT_SPEED);
         if (inst == null) return;
-        NamespacedKey key = new NamespacedKey(plugin, SINKING_SPEED_MOD_KEY);
         inst.getModifiers().stream()
-                .filter(m -> key.equals(m.getKey()))
+                .filter(m -> sinkingSpeedKey.equals(m.getKey()))
                 .findFirst()
                 .ifPresent(inst::removeModifier);
         int p = s == null ? 0 : s.potency(StatusEffect.SINKING);
         if (p <= 0) return;
         double amount = -Math.min(SINKING_SPEED_MAX, p * SINKING_SPEED_PER_POTENCY);
         inst.addModifier(new AttributeModifier(
-                key, amount, AttributeModifier.Operation.MULTIPLY_SCALAR_1, EquipmentSlotGroup.ANY));
+                sinkingSpeedKey, amount, AttributeModifier.Operation.MULTIPLY_SCALAR_1, EquipmentSlotGroup.ANY));
     }
 
     private void showDamage(LivingEntity target, Player source, double amount, StatusEffect label) {
