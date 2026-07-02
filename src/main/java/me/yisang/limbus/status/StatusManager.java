@@ -209,7 +209,7 @@ public class StatusManager implements Listener {
             }
             if (mult != 1.0) event.setDamage(event.getDamage() * mult);
             if (crit && attacker instanceof Player pa) {
-                sendActionBar(pa, "§3§l✦ 呼吸法爆擊 §7» §f×" + POISE_CRIT_MULT);
+                sendActionBar(pa, plugin.msg("status.poise_crit", POISE_CRIT_MULT));
             }
             // 每次出手消耗 1 count（Limbus buff 語意：每回合／每次拼點自然衰減）
             if (power > 0) atkS.consume(StatusEffect.POWER, 1);
@@ -282,7 +282,7 @@ public class StatusManager implements Listener {
                     apply(victim, StatusEffect.BURN, TREMOR_DERIV_BURN_POTENCY, TREMOR_DERIV_BURN_COUNT);
                 }
                 if (src != null) {
-                    sendActionBar(src, "§b§l⚡ 震顫爆發 §f" + tremorPotency + " §7→ §6灼熱派生");
+                    sendActionBar(src, plugin.msg("status.tremor_burst", tremorPotency));
                 }
             }
         }
@@ -322,7 +322,8 @@ public class StatusManager implements Listener {
     // ── 顯示 ────────────────────────────────────────────────────────
 
     private void showEffectApplied(LivingEntity target, StatusEffect e, int potency, int count, Player source) {
-        String txt = e.color + "▲ " + e.zh + " §f" + potency + " §7/ §f" + count;
+        String name = plugin.getLang().get("status." + e.name().toLowerCase());
+        String txt = plugin.msg("status.applied", e.color, name, potency, count);
         if (target instanceof Player p) sendActionBar(p, txt);
         if (source != null && source.isOnline() && !source.equals(target)) sendActionBar(source, txt);
     }
@@ -347,10 +348,12 @@ public class StatusManager implements Listener {
     }
 
     private void showDamage(LivingEntity target, Player source, double amount, StatusEffect label) {
-        String tag = label == null ? "§4憂鬱" : (label.color + label.zh);
-        String txt = tag + " §7» §f" + String.format("%.1f", amount);
-        if (target instanceof Player p) sendActionBar(p, "§c-" + String.format("%.1f", amount) + " " + tag);
-        if (source != null && source.isOnline()) sendActionBar(source, txt);
+        String tag = label == null
+                ? "§4" + plugin.getLang().get("status.depression")
+                : (label.color + plugin.getLang().get("status." + label.name().toLowerCase()));
+        String amt = String.format("%.1f", amount);
+        if (target instanceof Player p) sendActionBar(p, plugin.msg("status.damage_target", amt, tag));
+        if (source != null && source.isOnline()) sendActionBar(source, plugin.msg("status.damage_source", tag, amt));
     }
 
     private void sendActionBar(Player p, String msg) {

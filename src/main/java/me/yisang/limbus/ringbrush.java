@@ -44,8 +44,8 @@ public class ringbrush implements EGOWeapon, Listener {
         ItemStack item = new ItemStack(Material.NETHERITE_SWORD);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(plugin.translateHexColorCodes("&#FFFFFF環指筆刷"));
-            meta.setLore(List.of(plugin.translateHexColorCodes("&#FF9500不及格。")));
+            meta.setDisplayName(plugin.msg("weapon.brush.name"));
+            meta.setLore(List.of(plugin.msg("weapon.brush.lore")));
             meta.setCustomModelData(1001);
             meta.setUnbreakable(true);
             meta.setItemModel(NamespacedKey.fromString("ringbrush:ring_brush"));

@@ -4,7 +4,7 @@
 
 A Paper plugin bringing Limbus Company's E.G.O weapons and their **attack attribute / sanity system** into Minecraft.
 
-- **Version**: 3.0.3
+- **Version**: 3.1.0
 - **Minecraft**: 1.21.4
 - **Platform**: Paper (requires `setItemModel` API)
 - **Soft-depend**: [ProtocolLib](https://www.spigotmc.org/resources/protocollib.1997/) (optional — suppresses vanilla crossbow sounds heard by nearby players when firing Solemn Lament)
@@ -167,8 +167,28 @@ Meursault's iaijutsu blade. "Behead beneath the moon — and thus, expire."
 | `/getego give <player> <weapon_id> [amount]` | Give weapon to player (console-usable) |
 | `/getego admin` | Open the admin GUI (3-row layout) |
 | `/getego catalog` | Open the player catalog (**All Weapons** / **LCE R&D Exclusive** tabs) |
+| `/getego reload` | Reload `config.yml` and language files (requires `limbus.admin`) |
+| `/getego language [code]` | Show current language / switch language, tab-completes available codes (requires `limbus.admin`) |
 
 **Weapon IDs**: `brush`, `mimicry`, `dacapo`, `black`, `white`, `butterflies`, `shield`, `tiantui`, `tiger_mark`, `savage_tiger_mark`, `chatuhu`, `twilight`, `apocalypse_bird`, `tibia`, `w_corp_knife`, `bladesinger`
+
+---
+
+## Localization (v3.1.0)
+
+All user-facing text (weapon names, lore, ActionBar prompts, status names, command replies, GUI titles, sanity BossBar) has been extracted into separate language files.
+
+- **Config**: `plugins/LimbusEGOWeapons/config.yml`
+  ```yaml
+  language: zh_TW
+  ```
+- **Built-in languages**: `zh_TW` (Traditional Chinese), `en_US` (English) — auto-extracted to `plugins/LimbusEGOWeapons/lang/` on first boot.
+- **Custom languages**: drop `<code>.yml` into `plugins/LimbusEGOWeapons/lang/`; `/getego language <code>` picks it up immediately.
+- **Placeholders**: `{0}`, `{1}`, … are substituted with runtime values (cooldown seconds, hit count, bleed stacks, etc.); color codes accept both `&` and `&#RRGGBB`.
+- **Switching**
+  - Edit `config.yml` → `/getego reload`
+  - Or run `/getego language en_US` (writes back to config automatically).
+- **Fallback**: if a key is missing in the active language, it falls back to the `zh_TW` file, then to the key literal.
 
 ---
 

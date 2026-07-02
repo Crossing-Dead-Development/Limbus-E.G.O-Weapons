@@ -96,14 +96,14 @@ public class SanityManager {
         // Math.floorDiv 對負數用地板除法：-20→-2、-21→-3、-30→-3、-31→-4
         boolean droppedByTen = v < old && Math.floorDiv(v, 10) < Math.floorDiv(old, 10);
         if (droppedByTen && v < WARN_THRESHOLD) {
-            p.sendMessage("§5§l⚠ 理智值 §7» §d" + v + " §8/ §7" + SAN_MAX);
+            p.sendMessage(plugin.msg("sanity.warn_drop", v, SAN_MAX));
             p.playSound(p.getLocation(), Sound.ENTITY_WITHER_AMBIENT, 0.4f, 0.5f);
         }
         if (old > DEBUFF_THRESHOLD && v <= DEBUFF_THRESHOLD) {
-            p.sendMessage("§5§l▼ 陷入恐慌 §c你的雙眼與四肢已不再聽從指揮");
+            p.sendMessage(plugin.msg("sanity.panic"));
         }
         if (old > SAN_MIN && v == SAN_MIN) {
-            p.sendMessage("§4§l▼ 理智觸底 §c你已陷入憂鬱");
+            p.sendMessage(plugin.msg("sanity.bottom"));
             p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 0.5f, 0.5f);
         }
     }
@@ -185,7 +185,9 @@ public class SanityManager {
 
     public void onJoin(Player p) {
         san.putIfAbsent(p.getUniqueId(), 0);
-        BossBar bar = Bukkit.createBossBar("理智值 0 / " + SAN_MAX, BarColor.BLUE, BarStyle.SEGMENTED_10);
+        BossBar bar = Bukkit.createBossBar(
+                plugin.getLang().get("sanity.bar_title", "§b", 0, SAN_MAX),
+                BarColor.BLUE, BarStyle.SEGMENTED_10);
         bar.setProgress(0.5);
         bar.addPlayer(p);
         bars.put(p.getUniqueId(), bar);
@@ -206,7 +208,8 @@ public class SanityManager {
         if (bar == null) return;
         double prog = (cur + 45.0) / 90.0;
         bar.setProgress(Math.max(0.0, Math.min(1.0, prog)));
-        bar.setTitle("§f理智值 " + (cur >= 0 ? "§b" : (cur < WARN_THRESHOLD ? "§5" : "§c")) + cur + " §7/ §f" + SAN_MAX);
+        String color = cur >= 0 ? "§b" : (cur < WARN_THRESHOLD ? "§5" : "§c");
+        bar.setTitle(plugin.msg("sanity.bar_title", color, cur, SAN_MAX));
         if (cur < WARN_THRESHOLD) bar.setColor(BarColor.PURPLE);
         else if (cur < 0) bar.setColor(BarColor.RED);
         else bar.setColor(BarColor.BLUE);

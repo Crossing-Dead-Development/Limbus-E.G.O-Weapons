@@ -36,8 +36,7 @@ public class WeaponCatalogGUI implements InventoryHolder {
     }
 
     private void build() {
-        inventory = Bukkit.createInventory(this, 54,
-                plugin.translateHexColorCodes("&#FFFFFF武器圖鑑"));
+        inventory = Bukkit.createInventory(this, 54, plugin.msg("gui.catalog.title"));
 
         ItemStack border = makeItem(Material.BLACK_STAINED_GLASS_PANE, " ");
         for (int i = 0; i < 9; i++) inventory.setItem(i, border);
@@ -48,10 +47,10 @@ public class WeaponCatalogGUI implements InventoryHolder {
         boolean lceActive = currentTab == TAB_LCE;
         inventory.setItem(TAB_ALL_SLOT, makeItem(
                 allActive ? Material.WHITE_STAINED_GLASS_PANE : Material.LIGHT_GRAY_STAINED_GLASS_PANE,
-                "&#FFFFFF" + (allActive ? "&l▶ " : "") + "全部武器"));
+                "&#FFFFFF" + (allActive ? "&l▶ " : "") + plugin.getLang().get("gui.catalog.tab_all")));
         inventory.setItem(TAB_LCE_SLOT, makeItem(
                 lceActive ? Material.WHITE_STAINED_GLASS_PANE : Material.YELLOW_STAINED_GLASS_PANE,
-                "&#FFD700" + (lceActive ? "&l▶ " : "") + "LCE 研發限定"));
+                "&#FFD700" + (lceActive ? "&l▶ " : "") + plugin.getLang().get("gui.catalog.tab_lce")));
 
         // 內容
         List<ItemStack> items = currentTab == TAB_LCE ? lcePage() : allPage();
@@ -59,7 +58,7 @@ public class WeaponCatalogGUI implements InventoryHolder {
             inventory.setItem(9 + i, i < items.size() ? items.get(i) : border);
         }
 
-        inventory.setItem(CLOSE_SLOT, makeItem(Material.BARRIER, "&#FF5555關閉"));
+        inventory.setItem(CLOSE_SLOT, makeItem(Material.BARRIER, plugin.getLang().get("gui.catalog.close")));
     }
 
     private List<ItemStack> allPage() {

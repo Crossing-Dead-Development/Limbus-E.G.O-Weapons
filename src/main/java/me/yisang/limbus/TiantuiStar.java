@@ -62,10 +62,8 @@ public class TiantuiStar implements EGOWeapon, Listener {
         ItemStack item = new ItemStack(Material.NETHERITE_SWORD);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(plugin.translateHexColorCodes("&#E67E22天退星刀"));
-            meta.setLore(List.of(
-                    plugin.translateHexColorCodes("&7填入虎標彈，蓄勢，化作奔虎。"),
-                    plugin.translateHexColorCodes("&8右鍵：虎標彈衝刺　潛行右鍵：猛虎標彈衝刺")));
+            meta.setDisplayName(plugin.msg("weapon.tiantui.name"));
+            meta.setLore(plugin.msgList("weapon.tiantui.lore"));
             meta.setCustomModelData(1008);
             meta.setUnbreakable(true);
             meta.setItemModel(NamespacedKey.fromString("tiantui_star:tiantui_star"));
@@ -84,21 +82,21 @@ public class TiantuiStar implements EGOWeapon, Listener {
     }
 
     public ItemStack createTigerMark(int amount) {
-        return buildAmmo(amount, "tiger_mark", "&#E67E22虎標彈",
-                "&7助推填充火藥。");
+        return buildAmmo(amount, "tiger_mark",
+                "weapon.tiantui.tiger_mark.name", "weapon.tiantui.tiger_mark.lore");
     }
 
     public ItemStack createSavageTigerMark(int amount) {
-        return buildAmmo(amount, "savage_tiger_mark", "&#C0392B猛虎標彈",
-                "&7更猛烈的助推火藥。");
+        return buildAmmo(amount, "savage_tiger_mark",
+                "weapon.tiantui.savage.name", "weapon.tiantui.savage.lore");
     }
 
-    private ItemStack buildAmmo(int amount, String id, String name, String lore) {
+    private ItemStack buildAmmo(int amount, String id, String nameKey, String loreKey) {
         ItemStack item = new ItemStack(Material.GUNPOWDER, Math.max(1, amount));
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(plugin.translateHexColorCodes(name));
-            meta.setLore(List.of(plugin.translateHexColorCodes(lore)));
+            meta.setDisplayName(plugin.msg(nameKey));
+            meta.setLore(List.of(plugin.msg(loreKey)));
             meta.setItemModel(NamespacedKey.fromString("tiantui_star:" + id));
             meta.getPersistentDataContainer().set(
                     plugin.getItemIdKey(), PersistentDataType.STRING, id);
@@ -113,10 +111,8 @@ public class TiantuiStar implements EGOWeapon, Listener {
         ItemStack item = new ItemStack(Material.TRIAL_KEY, Math.max(1, amount));
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(plugin.translateHexColorCodes("&#E67E22插翅虎"));
-            meta.setLore(List.of(
-                    plugin.translateHexColorCodes("&7天退星刀 + 10 猛虎標彈 + 20 虎標彈"),
-                    plugin.translateHexColorCodes("&8右鍵開啟（需 4 格空位，開後消失）")));
+            meta.setDisplayName(plugin.msg("weapon.tiantui.chatuhu.name"));
+            meta.setLore(plugin.msgList("weapon.tiantui.chatuhu.lore"));
             meta.setItemModel(NamespacedKey.fromString("tiantui_star:lei"));
             meta.getPersistentDataContainer().set(
                     plugin.getItemIdKey(), PersistentDataType.STRING, "chatuhu");
@@ -160,8 +156,7 @@ public class TiantuiStar implements EGOWeapon, Listener {
         boolean savage = player.isSneaking();
         String ammoId = savage ? "savage_tiger_mark" : "tiger_mark";
         if (!hasAmmo(player, ammoId)) {
-            player.sendActionBar(plugin.translateHexColorCodes(
-                    savage ? "&#FF5555缺少猛虎標彈" : "&#FF5555缺少虎標彈"));
+            player.sendActionBar(plugin.msg(savage ? "msg.tiantui.no_ammo_savage" : "msg.tiantui.no_ammo_tiger"));
             return;
         }
         startCharge(player, savage);
@@ -213,8 +208,8 @@ public class TiantuiStar implements EGOWeapon, Listener {
                     int filled = (int) Math.round((double) t / ticks * 10);
                     StringBuilder bar = new StringBuilder();
                     for (int i = 0; i < 10; i++) bar.append(i < filled ? '▮' : '▯');
-                    player.sendActionBar(plugin.translateHexColorCodes(
-                            (savage ? "&#C0392B猛虎標彈 " : "&#E67E22虎標彈 ") + bar));
+                    String prefix = plugin.msg(savage ? "msg.tiantui.charge_prefix_savage" : "msg.tiantui.charge_prefix_tiger");
+                    player.sendActionBar(prefix + bar);
                 }
                 t++;
                 if (t >= ticks) {
@@ -234,8 +229,7 @@ public class TiantuiStar implements EGOWeapon, Listener {
     private void openChatuhuPack(Player player, ItemStack pack) {
         // 需 4 格空位（刀、猛虎標彈、虎標彈、組合包暫存／緩衝）
         if (countFreeSlots(player) < 4) {
-            player.sendActionBar(plugin.translateHexColorCodes(
-                    "&#FF5555背包需 4 格空位才能開啟插翅虎"));
+            player.sendActionBar(plugin.msg("msg.tiantui.chatuhu_need_space"));
             return;
         }
 
@@ -270,8 +264,7 @@ public class TiantuiStar implements EGOWeapon, Listener {
         // 無聲開啟，保留粒子提示
         player.getWorld().spawnParticle(org.bukkit.Particle.END_ROD,
                 player.getLocation().add(0, 1.0, 0), 16, 0.4, 0.4, 0.4, 0.02);
-        player.sendActionBar(plugin.translateHexColorCodes(
-                "&#E67E22插翅虎 &7已開啟 &8(天退星刀 + 10 猛 + 20 普)"));
+        player.sendActionBar(plugin.msg("msg.tiantui.chatuhu_opened"));
     }
 
     private int countFreeSlots(Player player) {
@@ -296,7 +289,7 @@ public class TiantuiStar implements EGOWeapon, Listener {
         player.stopSound("tiantui_star:tiantui.charge_savage_1");
         player.stopSound("tiantui_star:tiantui.charge_savage_2");
         player.stopSound("tiantui_star:tiantui.charge_savage_3");
-        player.sendActionBar(plugin.translateHexColorCodes("&#FF5555蓄力中斷"));
+        player.sendActionBar(plugin.msg("msg.tiantui.cancelled"));
     }
 
     // 改變 hotbar 選中欄位

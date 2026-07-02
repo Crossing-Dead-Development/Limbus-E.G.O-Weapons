@@ -39,6 +39,7 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
     private SoundSuppressor soundSuppressor;
     private me.yisang.limbus.status.StatusManager statusManager;
     private me.yisang.limbus.status.SanityManager sanityManager;
+    private me.yisang.limbus.lang.LangManager lang;
 
     private static final String PACK_URL  = "https://github.com/EvansGoethe/Limbus-E.G.O-weapon-plugin-ResourcePack/releases/download/v.2.17/Limbus_E.G.O_Weapons_plugin_ResourcePack.v.2.17.zip";
     private static final String PACK_HASH = "060302e85c12d23127b7c4eb3b7050c82615e20d";
@@ -95,6 +96,25 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
     public EGOWeapon getWeaponModule(String id) { return weaponModules.get(id); }
     public me.yisang.limbus.status.StatusManager getStatusManager() { return statusManager; }
     public me.yisang.limbus.status.SanityManager getSanityManager() { return sanityManager; }
+    public me.yisang.limbus.lang.LangManager getLang() { return lang; }
+
+    /** 讀語言 key 並轉換顏色代碼。 */
+    public String msg(String key) {
+        return translateHexColorCodes(lang.get(key));
+    }
+
+    /** 讀語言 key、代入佔位符後再轉顏色。 */
+    public String msg(String key, Object... args) {
+        return translateHexColorCodes(lang.get(key, args));
+    }
+
+    /** 讀 List 型 lore，逐行轉顏色。 */
+    public java.util.List<String> msgList(String key) {
+        java.util.List<String> raw = lang.getList(key);
+        java.util.List<String> out = new java.util.ArrayList<>(raw.size());
+        for (String line : raw) out.add(translateHexColorCodes(line));
+        return out;
+    }
 
     public boolean hasItemId(ItemStack item, String id) {
         if (item == null || !item.hasItemMeta()) return false;
@@ -109,6 +129,8 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
     @Override
     public void onEnable() {
         this.ITEM_ID_KEY = new NamespacedKey(this, "item_id");
+        this.lang = new me.yisang.limbus.lang.LangManager(this);
+        this.lang.load();
 
         this.solemn = new solemnlament(this);
         mimicry    m  = new mimicry(this);
@@ -322,7 +344,7 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
         ItemStack item = event.getCurrentItem();
         if (item != null && !item.getType().isAir()) {
             player.getInventory().addItem(item.clone());
-            player.sendMessage(translateHexColorCodes("&#FFD700已給予物品。"));
+            player.sendMessage(msg("msg.admin.given"));
         }
     }
 
@@ -342,11 +364,35 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
         if (args.length == 0) return true;
         String first = args[0].toLowerCase();
 
+        if ("reload".equals(first)) {
+            if (!sender.hasPermission("limbus.admin") && !(sender instanceof org.bukkit.command.ConsoleCommandSender)) return true;
+            lang.reload();
+            sender.sendMessage(msg("cmd.reload_success"));
+            return true;
+        }
+
+        if ("language".equals(first) || "lang".equals(first)) {
+            if (!sender.hasPermission("limbus.admin") && !(sender instanceof org.bukkit.command.ConsoleCommandSender)) return true;
+            if (args.length < 2) {
+                sender.sendMessage(msg("cmd.language_current", lang.getCurrentLang()));
+                sender.sendMessage(msg("cmd.usage_language"));
+                return true;
+            }
+            String code = args[1];
+            if (!lang.hasLang(code)) {
+                sender.sendMessage(msg("cmd.language_invalid", code, String.join(", ", lang.getAvailableLangs())));
+                return true;
+            }
+            lang.setLanguage(code);
+            sender.sendMessage(msg("cmd.language_set", code));
+            return true;
+        }
+
         if ("give".equals(first)) {
             if (!sender.hasPermission("limbus.admin") && !(sender instanceof org.bukkit.command.ConsoleCommandSender)) return true;
-            if (args.length < 3) { sender.sendMessage("用法：/getego give <玩家> <武器ID>"); return true; }
+            if (args.length < 3) { sender.sendMessage(msg("cmd.usage_give")); return true; }
             Player target = Bukkit.getPlayerExact(args[1]);
-            if (target == null) { sender.sendMessage("找不到玩家：" + args[1]); return true; }
+            if (target == null) { sender.sendMessage(msg("cmd.player_not_found", args[1])); return true; }
             String weaponId = args[2].toLowerCase();
             int amount = 1;
             if (args.length >= 4) {
@@ -402,8 +448,14 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
             List<String> completions = new ArrayList<>(
                     List.of("brush", "black", "white", "butterflies", "shield", "mimicry", "dacapo",
                             "tiantui", "tiger_mark", "savage_tiger_mark", "chatuhu", "twilight",
-                            "apocalypse_bird", "tibia", "w_corp_knife", "bladesinger", "admin", "catalog"));
+                            "apocalypse_bird", "tibia", "w_corp_knife", "bladesinger", "admin", "catalog",
+                            "reload", "language", "give"));
             return completions.stream().filter(s -> s.startsWith(args[0].toLowerCase())).toList();
+        }
+        if (args.length == 2 && ("language".equalsIgnoreCase(args[0]) || "lang".equalsIgnoreCase(args[0]))) {
+            String prefix = args[1].toLowerCase();
+            return lang.getAvailableLangs().stream()
+                    .filter(s -> s.toLowerCase().startsWith(prefix)).toList();
         }
         return Collections.emptyList();
     }

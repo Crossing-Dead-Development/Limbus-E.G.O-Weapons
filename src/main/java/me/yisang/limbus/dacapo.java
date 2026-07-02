@@ -27,8 +27,8 @@ public class dacapo implements EGOWeapon, Listener {
         ItemStack item = new ItemStack(Material.IRON_SWORD);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(plugin.translateHexColorCodes("&#FFFFFFDaCapo"));
-            meta.setLore(List.of(plugin.translateHexColorCodes("&x&F&F&F&F&F&F來自廢墟的最華麗的演出，即將拉開帷幕！")));
+            meta.setDisplayName(plugin.msg("weapon.dacapo.name"));
+            meta.setLore(List.of(plugin.msg("weapon.dacapo.lore")));
             meta.setCustomModelData(1007);
             meta.setUnbreakable(true);
             meta.setItemModel(NamespacedKey.fromString("dacapo:dacapo"));

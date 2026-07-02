@@ -21,7 +21,7 @@ public class WeaponAdminGUI implements InventoryHolder {
     static final int[] ITEM_SLOTS = {10, 11, 12, 14, 15, 16, 17, 19, 20, 21, 22, 23, 24, 25, 28, 29};
 
     public WeaponAdminGUI(LimbusEGOWeapons plugin) {
-        inventory = Bukkit.createInventory(this, 36, "§6✦ 武器管理");
+        inventory = Bukkit.createInventory(this, 36, plugin.msg("gui.admin.title"));
 
         ItemStack filler = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
         ItemMeta fm = filler.getItemMeta();

@@ -1,9 +1,10 @@
 name: LimbusEGOWeapons
-version: 3.0.3
+version: 3.1.0
 main: me.yisang.limbus.LimbusEGOWeapons
 description: Face the sin, Save the E.G.O.
 api-version: "1.21.4"
 softdepend: [ProtocolLib]
 commands:
   getego:
-    description: 取得 E.G.O 裝備 / 開啟武器圖鑑
+    description: E.G.O weapons: give / catalog / language / reload
+    usage: /getego <give|catalog|reload|language|...>

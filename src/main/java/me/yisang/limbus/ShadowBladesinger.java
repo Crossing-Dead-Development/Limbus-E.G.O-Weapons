@@ -63,9 +63,8 @@ public class ShadowBladesinger implements EGOWeapon, Listener {
         ItemStack item = new ItemStack(Material.NETHERITE_SWORD);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(plugin.translateHexColorCodes("&#AEDBFF著影揮刀"));
-            meta.setLore(List.of(
-                    plugin.translateHexColorCodes("&#D0E7FF望月斬首──就此，氣絕吧。")));
+            meta.setDisplayName(plugin.msg("weapon.bladesinger.name"));
+            meta.setLore(List.of(plugin.msg("weapon.bladesinger.lore")));
             meta.setCustomModelData(1012);
             meta.setUnbreakable(true);
             meta.setItemModel(NamespacedKey.fromString("shadow_vested_bladesinger:shadow_vested_bladesinger"));
@@ -114,13 +113,12 @@ public class ShadowBladesinger implements EGOWeapon, Listener {
         long now = System.currentTimeMillis();
         long cd = slashCooldown.getOrDefault(uid, 0L);
         if (now < cd) {
-            player.sendActionBar(plugin.translateHexColorCodes(
-                    "&#AEDBFF肉斬骨斷冷卻中…" + ((cd - now) / 1000 + 1) + "s"));
+            player.sendActionBar(plugin.msg("msg.bladesinger.cooldown", ((cd - now) / 1000 + 1)));
             return;
         }
         slashCooldown.put(uid, now + SLASH_COOLDOWN_MS);
 
-        player.sendActionBar(plugin.translateHexColorCodes("&#AEDBFF&l✦ 肉斬骨斷"));
+        player.sendActionBar(plugin.msg("msg.bladesinger.trigger"));
         player.playSound(player.getLocation(), Sound.ITEM_TRIDENT_THUNDER, 0.6f, 1.6f);
         player.playSound(player.getLocation(), Sound.ITEM_ARMOR_EQUIP_NETHERITE, 1.0f, 0.7f);
         // 站定：強緩速 + 每 tick 拉回原位

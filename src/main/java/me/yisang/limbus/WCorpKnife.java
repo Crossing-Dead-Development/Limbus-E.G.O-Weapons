@@ -40,9 +40,8 @@ public class WCorpKnife implements EGOWeapon, Listener {
         ItemStack item = new ItemStack(Material.IRON_SWORD);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(plugin.translateHexColorCodes("&#66E1FFW公司 匕首"));
-            meta.setLore(List.of(
-                    plugin.translateHexColorCodes("&#B3F0FF至終，此為通路。")));
+            meta.setDisplayName(plugin.msg("weapon.w_corp_knife.name"));
+            meta.setLore(List.of(plugin.msg("weapon.w_corp_knife.lore")));
             meta.setCustomModelData(1011);
             meta.setUnbreakable(true);
             meta.setItemModel(NamespacedKey.fromString("w_corp_knife:w_corp_knife"));
@@ -76,7 +75,7 @@ public class WCorpKnife implements EGOWeapon, Listener {
         // 過載：20% 機率額外 +1 potency +1 count（層數與級數同步再上一階）
         if (Math.random() < 0.20) {
             sm.apply(attacker, StatusEffect.CHARGE, 1, 1, attacker);
-            attacker.sendActionBar(plugin.translateHexColorCodes("&#66E1FF&l⚡ 過載 &7» &f+1 層 / +1 級"));
+            attacker.sendActionBar(plugin.msg("msg.wcorp.overload"));
             attacker.getWorld().spawnParticle(org.bukkit.Particle.ELECTRIC_SPARK,
                     attacker.getLocation().add(0, 1.2, 0), 8, 0.2, 0.3, 0.2, 0.05);
         }

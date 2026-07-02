@@ -205,20 +205,16 @@ public class solemnlament {
     public ItemStack createItem(String type) {
         return switch (type.toLowerCase()) {
             case "black"       -> applyHiddenQuickChargeV(buildItem(Material.CROSSBOW, 1002,
-                    "&#333333&l莊嚴哀悼",
-                    "&x&F&F&F&F&F&F人&x&D&1&D&1&D&1死&x&A&3&A&3&A&3後&x&7&4&7&4&7&4會&x&4&6&4&6&4&6去&x&7&4&7&4&7&4往&x&A&3&A&3&A&3何&x&D&1&D&1&D&1方&x&F&F&F&F&F&F？",
+                    "weapon.solemn.black.name", "weapon.solemn.lore",
                     "solemnlament:solemn_lament_black", "solemn_lament"));
             case "white"       -> applyHiddenQuickChargeV(buildItem(Material.CROSSBOW, 1003,
-                    "&#FFFFFF&l莊嚴哀悼",
-                    "&x&F&F&F&F&F&F人&x&D&1&D&1&D&1死&x&A&3&A&3&A&3後&x&7&4&7&4&7&4會&x&4&6&4&6&4&6去&x&7&4&7&4&7&4往&x&A&3&A&3&A&3何&x&D&1&D&1&D&1方&x&F&F&F&F&F&F？",
+                    "weapon.solemn.white.name", "weapon.solemn.lore",
                     "solemnlament:solemn_lament_white", "solemn_lament"));
             case "butterflies" -> buildItem(Material.ARROW,  1004,
-                    "&#FFFFFF生&#D8D8D8蝶&#B1B1B1、&#8A8A8A亡&#636363蝶",
-                    "&x&F&F&F&F&F&F人&x&D&1&D&1&D&1死&x&A&3&A&3&A&3後&x&7&4&7&4&7&4會&x&4&6&4&6&4&6去&x&7&4&7&4&7&4往&x&A&3&A&3&A&3何&x&D&1&D&1&D&1方&x&F&F&F&F&F&F？",
+                    "weapon.solemn.butterflies.name", "weapon.solemn.lore",
                     "solemnlament:butterflies", "butterfly");
             case "shield"      -> buildItem(Material.SHIELD,  1005,
-                    "&#FFFFFF&l聖宣",
-                    "&x&F&F&F&F&F&F人&x&D&1&D&1&D&1死&x&A&3&A&3&A&3後&x&7&4&7&4&7&4會&x&4&6&4&6&4&6去&x&7&4&7&4&7&4往&x&A&3&A&3&A&3何&x&D&1&D&1&D&1方&x&F&F&F&F&F&F？",
+                    "weapon.solemn.shield.name", "weapon.solemn.lore",
                     "solemnlament:solemn_lament_shield", "solemn_shield");
             default -> null;
         };
@@ -255,12 +251,12 @@ public class solemnlament {
     }
 
     private ItemStack buildItem(Material material, int cmdData,
-                                String name, String lore, String model, String id) {
+                                String nameKey, String loreKey, String model, String id) {
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(plugin.translateHexColorCodes(name));
-            meta.setLore(List.of(plugin.translateHexColorCodes(lore)));
+            meta.setDisplayName(plugin.msg(nameKey));
+            meta.setLore(List.of(plugin.msg(loreKey)));
             meta.setCustomModelData(cmdData);
             meta.setItemModel(NamespacedKey.fromString(model));
             meta.setUnbreakable(true);

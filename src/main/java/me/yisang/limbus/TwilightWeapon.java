@@ -59,11 +59,8 @@ public class TwilightWeapon implements EGOWeapon, Listener {
         ItemStack item = new ItemStack(Material.DIAMOND_SWORD);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(plugin.translateHexColorCodes("&#FFD700薄暝"));
-            meta.setLore(List.of(
-                    plugin.translateHexColorCodes("&7終末將至，黃昏執刃。"),
-                    plugin.translateHexColorCodes("&8越接近死亡，斬擊越致命；部分傷害無視防禦。"),
-                    plugin.translateHexColorCodes("&8潛行右鍵：蓄力暮光斬（前方扇形波）")));
+            meta.setDisplayName(plugin.msg("weapon.twilight.name"));
+            meta.setLore(plugin.msgList("weapon.twilight.lore"));
             meta.setCustomModelData(1009);
             meta.setUnbreakable(true);
             meta.setItemModel(NamespacedKey.fromString("twilight:twilight"));
@@ -90,10 +87,8 @@ public class TwilightWeapon implements EGOWeapon, Listener {
         ItemStack item = new ItemStack(Material.TRIAL_KEY, Math.max(1, amount));
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(plugin.translateHexColorCodes("&#FFD700終末鳥"));
-            meta.setLore(List.of(
-                    plugin.translateHexColorCodes("&7黃昏審判，終末降臨。"),
-                    plugin.translateHexColorCodes("&8右鍵開啟以領受薄暝（需 1 格空位，開後消失）")));
+            meta.setDisplayName(plugin.msg("weapon.twilight.apocalypse.name"));
+            meta.setLore(plugin.msgList("weapon.twilight.apocalypse.lore"));
             meta.setItemModel(NamespacedKey.fromString("twilight:apocalypse_bird"));
             meta.getPersistentDataContainer().set(
                     plugin.getItemIdKey(), PersistentDataType.STRING, "apocalypse_bird");
@@ -104,7 +99,7 @@ public class TwilightWeapon implements EGOWeapon, Listener {
 
     private void openApocalypseBirdPack(Player player, ItemStack pack) {
         if (countFreeSlots(player) < 1) {
-            player.sendActionBar(plugin.translateHexColorCodes("&#FF5555背包需 1 格空位才能開啟"));
+            player.sendActionBar(plugin.msg("msg.twilight.apocalypse_need_space"));
             return;
         }
         if (pack.getAmount() <= 1) player.getInventory().setItemInMainHand(null);
@@ -125,7 +120,7 @@ public class TwilightWeapon implements EGOWeapon, Listener {
         player.getWorld().spawnParticle(Particle.DUST, c, 12, 0.4, 0.5, 0.4,
                 new Particle.DustOptions(Color.fromRGB(0x6C5B9E), 1.4f));
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PHANTOM_AMBIENT, 0.8f, 0.6f);
-        player.sendActionBar(plugin.translateHexColorCodes("&#6C5B9E薄暝 &7已領受"));
+        player.sendActionBar(plugin.msg("msg.twilight.apocalypse_received"));
     }
 
     private int countFreeSlots(Player player) {
@@ -189,8 +184,7 @@ public class TwilightWeapon implements EGOWeapon, Listener {
         long now = System.currentTimeMillis();
         long cd = specialCooldown.getOrDefault(uid, 0L);
         if (now < cd) {
-            player.sendActionBar(plugin.translateHexColorCodes(
-                    "&#8E7CC3暮光斬冷卻中…" + ((cd - now) / 1000 + 1) + "s"));
+            player.sendActionBar(plugin.msg("msg.twilight.cooldown", ((cd - now) / 1000 + 1)));
             return;
         }
         charging.add(uid);

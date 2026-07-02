@@ -25,9 +25,8 @@ public class mimicry implements EGOWeapon, Listener {
         ItemStack item = new ItemStack(Material.DIAMOND_SWORD);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(plugin.translateHexColorCodes("&#FF0000擬態"));
-            meta.setLore(List.of(plugin.translateHexColorCodes(
-                    "&x&F&F&0&0&0&0而那裡有許多聲音齊聲哭喊著同一個字──「主管」")));
+            meta.setDisplayName(plugin.msg("weapon.mimicry.name"));
+            meta.setLore(List.of(plugin.msg("weapon.mimicry.lore")));
             meta.setCustomModelData(1006);
             meta.setUnbreakable(true);
             meta.setItemModel(NamespacedKey.fromString("mimicry:mimicry"));

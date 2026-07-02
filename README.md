@@ -4,7 +4,7 @@
 
 將邊獄公司（Limbus Company）的 E.G.O 武器與**攻擊屬性 / 理智值系統**帶進 Minecraft 的 Paper 插件。
 
-- **版本**：3.0.3
+- **版本**：3.1.0
 - **Minecraft 版本**：1.21.4
 - **平台**：Paper（需支援 `setItemModel` API）
 - **軟相依**：[ProtocolLib](https://www.spigotmc.org/resources/protocollib.1997/)（可選，攔截莊嚴哀悼周圍他人聽到的原版弓箭聲）
@@ -167,8 +167,28 @@ Meursault 的居合刀。「望月斬首──就此，氣絕吧。」
 | `/getego give <玩家> <weapon_id> [數量]` | 給予玩家武器（主控台可執行） |
 | `/getego admin` | 開啟管理員 GUI（3 排武器分區） |
 | `/getego catalog` | 開啟玩家圖鑑（**全部** / **LCE 研發限定** 兩頁籤）|
+| `/getego reload` | 重新載入 `config.yml` 與語言檔（需 `limbus.admin`） |
+| `/getego language [代碼]` | 顯示目前語言 / 切換語言，Tab 補全可用代碼（需 `limbus.admin`） |
 
 **Weapon IDs**：`brush`、`mimicry`、`dacapo`、`black`、`white`、`butterflies`、`shield`、`tiantui`、`tiger_mark`、`savage_tiger_mark`、`chatuhu`、`twilight`、`apocalypse_bird`、`tibia`、`w_corp_knife`、`bladesinger`
+
+---
+
+## 多語言（v3.1.0）
+
+所有 UI 文字（武器名稱、lore、ActionBar 提示、屬性名、指令回應、圖鑑/管理 GUI 標題、理智值 BossBar）已抽出到獨立語言檔。
+
+- **設定檔**：`plugins/LimbusEGOWeapons/config.yml`
+  ```yaml
+  language: zh_TW
+  ```
+- **內建語言**：`zh_TW`（繁體中文）、`en_US`（英文），首次啟動會自動釋出到 `plugins/LimbusEGOWeapons/lang/`。
+- **自訂語言**：直接在 `plugins/LimbusEGOWeapons/lang/` 放 `<代碼>.yml` 即可，`/getego language <代碼>` 立即偵測並切換。
+- **佔位符**：`{0}`、`{1}`… 依訊息不同代入冷卻秒數 / 命中數 / 流血層等；顏色代碼支援 `&` 與 `&#RRGGBB`。
+- **切換方式**
+  - 改 `config.yml` → `/getego reload`
+  - 或直接 `/getego language en_US`（會自動寫回 config）
+- **回退**：某個 key 在當前語言檔缺失時，會退回 `zh_TW` 對應值；再缺就顯示 key 本身。
 
 ---
 

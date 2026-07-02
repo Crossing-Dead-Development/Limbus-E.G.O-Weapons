@@ -77,9 +77,8 @@ public class TibiaWeapon implements EGOWeapon, Listener {
         ItemStack item = new ItemStack(Material.NETHERITE_SWORD);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(plugin.translateHexColorCodes("&#8B0000提比婭"));
-            meta.setLore(List.of(
-                    plugin.translateHexColorCodes("&7聽見了嗎？那由提比婭的一對肱骨與二十四根肋骨奏響的旋律！")));
+            meta.setDisplayName(plugin.msg("weapon.tibia.name"));
+            meta.setLore(List.of(plugin.msg("weapon.tibia.lore")));
             meta.setCustomModelData(1010);
             meta.setUnbreakable(true);
             meta.setItemModel(NamespacedKey.fromString("tibia:tibia"));
@@ -123,8 +122,7 @@ public class TibiaWeapon implements EGOWeapon, Listener {
 
         // Melody 加成即時提示：讓玩家看見流血 potency 換來的 %
         int bleedPot = sm == null || sm.get(target) == null ? 0 : sm.get(target).potency(StatusEffect.BLEED);
-        attacker.sendActionBar(plugin.translateHexColorCodes(
-                "&#8B0000提比婭之旋律 &#FFFFFF+" + (int) Math.round(bonus * 100) + "% &7│ &#FF5555流血 &#FFFFFF" + bleedPot));
+        attacker.sendActionBar(plugin.msg("msg.tibia.melody", (int) Math.round(bonus * 100), bleedPot));
     }
 
     /** Melody 加成：讀目標身上的 BLEED potency，每 3 potency +3%，上限 30%。 */
@@ -158,8 +156,7 @@ public class TibiaWeapon implements EGOWeapon, Listener {
         long now = System.currentTimeMillis();
         long cd = specialCooldown.getOrDefault(uid, 0L);
         if (now < cd) {
-            player.sendActionBar(plugin.translateHexColorCodes(
-                    "&#8B0000解剖斬冷卻中…" + ((cd - now) / 1000 + 1) + "s"));
+            player.sendActionBar(plugin.msg("msg.tibia.cooldown", ((cd - now) / 1000 + 1)));
             return;
         }
         charging.add(uid);
@@ -184,8 +181,7 @@ public class TibiaWeapon implements EGOWeapon, Listener {
                 player.getWorld().spawnParticle(Particle.CRIMSON_SPORE, c, 3, 0.4, 0.4, 0.4, 0.01);
                 t++;
                 // 蓄力進度條（每 tick 更新）
-                player.sendActionBar(plugin.translateHexColorCodes(
-                        "&#8B0000◆ 解剖斬蓄力 " + chargeBar(t, CHARGE_TICKS)));
+                player.sendActionBar(plugin.msg("msg.tibia.charging", chargeBar(t, CHARGE_TICKS)));
                 if (t >= CHARGE_TICKS) {
                     cancel();
                     charging.remove(uid);
@@ -272,11 +268,9 @@ public class TibiaWeapon implements EGOWeapon, Listener {
 
         // 結算 ActionBar：命中數 + 疊加流血總量
         if (hitCount == 0) {
-            player.sendActionBar(plugin.translateHexColorCodes("&#8B0000◆ 解剖斬 &7未命中"));
+            player.sendActionBar(plugin.msg("msg.tibia.slash_missed"));
         } else {
-            player.sendActionBar(plugin.translateHexColorCodes(
-                    "&#8B0000◆ 解剖斬 &#FFFFFF命中 " + hitCount + " &7│ &#FF5555流血 +" + totalBleedApplied
-                            + " &7│ &#FFAA00引爆 " + SLASH_FORCE_TRIGGER + " 次"));
+            player.sendActionBar(plugin.msg("msg.tibia.slash_hit", hitCount, totalBleedApplied, SLASH_FORCE_TRIGGER));
         }
     }
 
