@@ -8,7 +8,7 @@ A Paper plugin bringing Limbus Company's E.G.O weapons and their **attack attrib
 - **Minecraft**: 1.21.4
 - **Platform**: Paper (requires `setItemModel` API)
 - **Soft-depend**: [ProtocolLib](https://www.spigotmc.org/resources/protocollib.1997/) (optional — suppresses vanilla crossbow sounds heard by nearby players when firing Solemn Lament)
-- **Resource Pack**: v.2.17 (repacked alongside Tibia), distributed by an external ResourcePackManager (this plugin does not push directly)
+- **Resource Pack**: v.2.17 (repacked alongside Tibia), distributed by an external [ResourcePackManager](https://www.spigotmc.org/resources/resource-pack-manager.118574/) (this plugin does not push directly)
 
 ## v3.2.0 highlights
 
