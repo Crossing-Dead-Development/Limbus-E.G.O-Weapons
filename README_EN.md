@@ -128,7 +128,7 @@ Once Tremor reaches 5 potency, any incoming hit triggers Burst → potentially m
 ### Tibia
 > Base: **Netherite Sword** | CMD: 1010 | +10 dmg / −2.8 spd | +1 interaction range
 
-Callisto's greatsword forged from her own bones. "The more you attack, the more you bleed."
+Callisto's greatsword forged from her own bones. "Can you hear it? The melody played by Tibia's pair of humeri and twenty-four ribs!"
 
 - Each melee hit applies **Bleed 3p/2c** (Bleed hurts the *attacker* when they swing — devastating against high attack-speed mobs)
 - **Melody bonus**: reads target's current Bleed potency, +3% per 3p (cap +30%), added on the hit itself
