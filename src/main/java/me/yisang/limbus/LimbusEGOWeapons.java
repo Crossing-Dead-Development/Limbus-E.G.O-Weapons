@@ -40,8 +40,8 @@ public class LimbusEGOWeapons extends JavaPlugin implements Listener, TabComplet
     private me.yisang.limbus.status.StatusManager statusManager;
     private me.yisang.limbus.status.SanityManager sanityManager;
 
-    private static final String PACK_URL  = "https://github.com/EvansGoethe/Limbus-E.G.O-weapon-plugin-ResourcePack/releases/download/v.2.16/Limbus_E.G.O_Weapons_plugin_ResourcePack.v.2.16.zip";
-    private static final String PACK_HASH = "df6b705101bb96fca53e25793610c24c3e19b4f1";
+    private static final String PACK_URL  = "https://github.com/EvansGoethe/Limbus-E.G.O-weapon-plugin-ResourcePack/releases/download/v.2.17/Limbus_E.G.O_Weapons_plugin_ResourcePack.v.2.17.zip";
+    private static final String PACK_HASH = "060302e85c12d23127b7c4eb3b7050c82615e20d";
     private static final String PACK_FILENAME = "resourcepack.zip";
 
     /**
